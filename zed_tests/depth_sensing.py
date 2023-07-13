@@ -27,7 +27,7 @@ import sys
 import viewer as gl
 import pyzed.sl as sl
 
-def parseArg(argLen, argv, param):
+"""def parseArg(argLen, argv, param):
     if(argLen>1):
         if(".svo" in argv):
             # SVO input mode
@@ -61,7 +61,7 @@ def parseArg(argLen, argv, param):
             print("Using camera in SVGA mode")
         elif("VGA" in argv and "SVGA" not in argv):
             param.camera_resolution = sl.RESOLUTION.VGA
-            print("Using camera in VGA mode")
+            print("Using camera in VGA mode")"""
 
 
 if __name__ == "__main__":
@@ -70,8 +70,8 @@ if __name__ == "__main__":
     init = sl.InitParameters(depth_mode=sl.DEPTH_MODE.ULTRA,
                                  coordinate_units=sl.UNIT.METER,
                                  coordinate_system=sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP)
-    if (len(sys.argv) > 1):
-        parseArg(len(sys.argv), sys.argv[1], init)
+    """if (len(sys.argv) > 1):
+        parseArg(len(sys.argv), sys.argv[1], init)"""
     zed = sl.Camera()
     status = zed.open(init)
     if status != sl.ERROR_CODE.SUCCESS:
