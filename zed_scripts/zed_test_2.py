@@ -1,9 +1,12 @@
 import pyzed.sl as sl
+import os
 import viewer as gl
 import math
 import numpy as np
 import sys
-
+import csv
+import cv2
+import matplotlib.pyplot as plt
 
 def params():
     
@@ -33,14 +36,38 @@ def params():
 
     return init_params, runtime_parameters
 
-def writer(idx = None):
+def file_writer(idx, timestamp, point_cloud_to_save, image_L_to_save=None, image_R_to_save=None):
+
+    """
+    Generate a csv file containing information about the retrieved data. Write the point cloud to a file and save the images.
+
+    Args:
+        idx (int): The index of the point cloud
+        timestamp (int): The timestamp of the point cloud
+        point_cloud_to_save (pyzed.sl.Mat): The point cloud to save
+        image_L_to_save (pyzed.sl.Mat, optional): The left image to save. Default to None.
+        image_R_to_save (pyzed.sl.Mat, optional): The right image to save. Default to None.
+
+    Returns:
+        err (pyzed.sl.ERROR_CODE): The error code if the point cloud was not saved
+        idx (int): The index of the point cloud
+    """
     
-    name= "test_"+str(idx)+".ply"
+    name= "test_"+str(idx)
+
+    with open('list.csv', 'a', encoding='UTF8') as f:
+        writer = csv.writer(f)
+        writer.writerow([name, timestamp, idx])
+        f.close()
+                
+    err = point_cloud_to_save.write(name+'.ply')
+    
+    if image_L_to_save is not None: cv2.imwrite(name+'_L.jpg', image_L_to_save.get_data())
+    if image_R_to_save is not None: cv2.imwrite(name+'_R.jpg', image_R_to_save.get_data())    
+    
     idx+=1
 
-
-
-    return name, idx
+    return err, idx
 
 
 def compute_centre(res, point_cloud):
@@ -66,54 +93,18 @@ def compute_centre(res, point_cloud):
                                 point_cloud_value[2] * point_cloud_value[2])
 
     if not np.isnan(distance) and not np.isinf(distance):
-        print("Distance to Camera at ({}, {}) (image center): {:.2f} m".format(x, y, distance), end="\r")
+        print("Distance to Camera at ({}, {}) (image center): {:.2f} m".format(x, y, distance), end="\n")
     else:
         print("Can't estimate distance at this position.")
         print("Your camera is probably too close to the scene, please move it backwards.\n")
     sys.stdout.flush()
 
-def displayer(zed, res):
-    
-    """Display the point cloud from the ZED camera
-
-    Args:
-        zed (pyzed.sl.Camera): The ZED camera
-        res (pyzed.sl.Resolution): The resolution of the image
-
-    Returns:
-        None
-    """
-    
-    print("Running Sensing ... Press 'Esc' to quit\nPress 's' to save the point cloud")
-
-    i = 0
-    camera_model = zed.get_camera_information().camera_model
-    viewer = gl.GLViewer()
-    viewer.init(1 , sys.argv,  camera_model, res)
-
-    point_cloud = sl.Mat(res.width, res.height, sl.MAT_TYPE.F32_C4, sl.MEM.CPU)
-
-    while viewer.is_available():
-        if zed.grab() == sl.ERROR_CODE.SUCCESS:
-            zed.retrieve_measure(point_cloud, sl.MEASURE.XYZRGBA,sl.MEM.CPU, res)
-            compute_centre(res, point_cloud)
-            viewer.updateData(point_cloud)
-            if(viewer.save_data == True):
-                point_cloud_to_save = sl.Mat();
-                zed.retrieve_measure(point_cloud_to_save, sl.MEASURE.XYZRGBA, sl.MEM.CPU)
-                name, i = writer(i)
-                err = point_cloud_to_save.write(name)
-                if(err == sl.ERROR_CODE.SUCCESS):
-                    print("point cloud saved")
-                else:
-                    print("the point cloud has not been saved")
-                viewer.save_data = False
-    viewer.exit()
-    zed.close()
-
 def main():
+    
+    """Main function to run the ZED camera
+    """
 
-    init, runtime = params()
+    init, runtime_parameters = params()
 
     zed = sl.Camera()
     status = zed.open(init)
@@ -124,20 +115,70 @@ def main():
     res = sl.Resolution()
     res.width = 720
     res.height = 404
+    
+    print("Running Sensing ... Press 'Esc' to quit\nPress 's' to save the point cloud\n")
 
-    displayer(zed, res)
-
-    """camera_model = zed.get_camera_information().camera_model
+    i = 0
+    camera_model = zed.get_camera_information().camera_model
     viewer = gl.GLViewer()
-   
-    mage_L = sl.Mat()
-    image_R = sl.Mat()
-    depth_L = sl.Mat()
-    point_cloud_L = sl.Mat()"""
+    viewer.init(1 , sys.argv,  camera_model, res)
 
-    """res = sl.Resolution()
-    res.width = image_L.get_width()
-    res.height = image_L.get_height()"""
+    point_cloud = sl.Mat(res.width, res.height, sl.MAT_TYPE.F32_C4, sl.MEM.CPU) # ALIGNED WITH LEFT IMAGE
+    #point_cloud = sl.Mat(res.width, res.height, sl.MAT_TYPE.F32_C4, sl.MEM.CPU) # ALIGNED WITH RIGHT IMAGE
+    depth = sl.Mat() # ALIGNED WITH LEFT IMAGE
+    image_L = sl.Mat()
+    image_R = sl.Mat()
+    
+    if 'list.csv' not in os.listdir():
+        with open('list.csv', 'w', encoding='UTF8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["filename", "timestamp", "index"])
+            f.close()
+    elif 'list.csv' in os.listdir() and os.stat('list.csv').st_size == 0:
+        with open('list.csv', 'r', encoding='UTF8') as f:
+            final_line = f.readlines()[-1]
+            i = int(final_line.split(',')[-1]) + 1 
+            f.close()
+
+    while viewer.is_available():
+        
+        if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
+            zed.retrieve_measure(point_cloud, sl.MEASURE.XYZRGBA,sl.MEM.CPU, res)
+            zed.retrieve_measure(depth, sl.MEASURE.DEPTH)
+            zed.retrieve_image(image_L, sl.VIEW.LEFT)
+            zed.retrieve_image(image_R, sl.VIEW.RIGHT)
+            
+            viewer.updateData(point_cloud)
+            
+            #cv2.imshow("image_R", image_R.get_data())
+        
+            if(viewer.save_data == True):
+                compute_centre(res, point_cloud)
+                point_cloud_to_save = sl.Mat()
+                depth_to_save = sl.Mat()
+                image_L_to_save = sl.Mat()
+                image_R_to_save = sl.Mat()
+
+                zed.retrieve_measure(point_cloud_to_save, sl.MEASURE.XYZRGBA, sl.MEM.CPU)
+                zed.retrieve_image(image_L_to_save, sl.VIEW.LEFT)
+                zed.retrieve_image(image_R_to_save, sl.VIEW.RIGHT)
+                """zed.retrieve_measure(depth_to_save, sl.MEASURE.DEPTH, sl.MEM.CPU)
+                zed.retrieve_image(image_L_to_save, sl.VIEW.LEFT, sl.MEM.CPU)
+                zed.retrieve_image(image_R_to_save, sl.VIEW.RIGHT, sl.MEM.CPU)"""
+
+                cv2.imshow("image_L", image_L_to_save.get_data())
+
+                timestamp = zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)  # Get the timestamp at the time the image was captured
+                err, i = file_writer(i, timestamp.get_milliseconds(), image_L_to_save, image_R_to_save)
+
+                if(err == sl.ERROR_CODE.SUCCESS):
+                    print("point cloud saved\n")
+                else:
+                    print("the point cloud has not been saved\n")
+                viewer.save_data = False
+
+    viewer.exit()
+    zed.close()
 
 if __name__ == "__main__":
     main()
