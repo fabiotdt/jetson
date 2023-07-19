@@ -226,10 +226,10 @@ class GLViewer:
 
     def init(self, _argc, _argv, camera_model, res): # _params = sl.CameraParameters
         glutInit(_argc, _argv)
-        wnd_w = int(glutGet(GLUT_SCREEN_WIDTH)*0.9)
-        wnd_h = int(glutGet(GLUT_SCREEN_HEIGHT) *0.9)
+        wnd_w = int(glutGet(GLUT_SCREEN_WIDTH)*0.45)
+        wnd_h = int(glutGet(GLUT_SCREEN_HEIGHT) *0.45)
         glutInitWindowSize(wnd_w, wnd_h)
-        glutInitWindowPosition(int(wnd_w*0.05), int(wnd_h*0.05))
+        glutInitWindowPosition(int(wnd_w*2), int(wnd_h*0.05))
 
         glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
         glutCreateWindow("ZED Depth Sensing")

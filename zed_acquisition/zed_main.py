@@ -7,7 +7,28 @@ import sys
 import csv
 import cv2
 import matplotlib.pyplot as plt
-import tkinter as tk
+from tkinter import *
+
+flowers = {
+    'ager' : 'agerato',
+    'bocl' : 'bocche_leone',
+    'bego' : 'begonie',
+    'marg' : 'margherite',
+    'cale' : 'calendule',
+    'borr' : 'borraggine',
+    'fior' : 'fiordaliso',
+    'dagr' : 'dalie_grandi',
+    'dapi' : 'dalie_picole',
+    'garo' : 'garofani',
+    'fucs' : 'fucsie',
+    'impa' : 'impatients',
+    'gera' : 'geranei',
+    'prim' : 'primule',
+    'rose' : 'rose',
+    'taget' : 'tagete',
+    'vipo' : 'violette_piccole',
+    'viga' : 'violette_grandi'
+    }
 
 class storing_data():
     def __init__(self, base_root):
@@ -18,6 +39,78 @@ class storing_data():
         self.depth_img = os.path.join(base_root, 'depth')
         self.point_cloud = os.path.join(base_root, 'point_cloud')
         self.recap_root = os.path.join(base_root, 'recap')
+
+def namer():
+
+   #Create an instance of the canvas
+   win = Tk()
+
+   #Select the title of the window
+   win.title("tutorialspoint.com")
+
+   #Define the geometry of the window
+   win.geometry("600x600")   
+
+   ager = Button(win, text = "agerato", command = lambda: is_name('ager', win))
+   ager.pack(padx = 1, pady = 1)
+
+   bocl = Button(win, text = "bocche di leone", command = lambda: is_name('bocl', win))
+   bocl.pack(padx = 1, pady = 1)
+
+   bego = Button(win, text = "begonie", command = lambda: is_name('bego', win))
+   bego.pack(padx = 1, pady = 1)
+
+   marg = Button(win, text = "margherite", command = lambda: is_name('marg', win))
+   marg.pack(padx = 1, pady = 1)
+
+   cale = Button(win, text = "calendule", command = lambda: is_name('cale', win))
+   cale.pack(padx = 1, pady = 1)
+
+   borr = Button(win, text = "borraggine", command = lambda: is_name('borr', win))
+   borr.pack(padx = 1, pady = 1)
+
+   fior = Button(win, text = "fiordaliso", command = lambda: is_name('fior', win))
+   fior.pack(padx = 1, pady = 1)
+
+   dagr = Button(win, text = "dalie grandi", command = lambda: is_name('dagr', win))
+   dagr.pack(padx = 1, pady = 1)
+
+   dapi = Button(win, text = "dalie piccole", command = lambda: is_name('dapi', win))
+   dapi.pack(padx = 1, pady = 1)
+
+   garo = Button(win, text = "garofani", command = lambda: is_name('garo', win))
+   garo.pack(padx = 1, pady = 1)
+
+   fucs = Button(win, text = "fucsie", command = lambda: is_name('fucs', win))
+   fucs.pack(padx = 1, pady = 1)
+
+   impa = Button(win, text = "impatients", command = lambda: is_name('impa', win))
+   impa.pack(padx = 1, pady = 1)
+
+   gera = Button(win, text = "geranei", command = lambda: is_name('gera', win))
+   gera.pack(padx = 1, pady = 1)
+
+   prim = Button(win, text = "primule", command = lambda: is_name('prim', win))
+   prim.pack(padx = 1, pady = 1)
+
+   rose = Button(win, text = "rose", command = lambda: is_name('rose', win))
+   rose.pack(padx = 1, pady = 1)
+
+   taget = Button(win, text = "tagete", command = lambda: is_name('taget', win))
+   taget.pack(padx = 1, pady = 1)
+
+   vipo = Button(win, text = "violette piccole", command = lambda: is_name('vipo', win))
+   vipo.pack(padx = 1, pady = 1)
+
+   viga = Button(win, text = "violette grandi", command = lambda: is_name('viga', win))
+   viga.pack(padx = 1, pady = 1)
+
+   win.mainloop()
+
+def is_name(name, win):
+   
+   win.destroy()
+   return name
 
 def params():
     
@@ -64,7 +157,13 @@ def file_writer(root, idx, timestamp, dist, point_cloud_to_save, image_L_to_save
         err (pyzed.sl.ERROR_CODE): The error code if the point cloud was not saved
         idx (int): The index of the point cloud
     """
-    name = "test_"+str(idx)
+    
+    namer()
+    variety = is_name(
+        
+    )
+    variety = input("Insert the variety of the flower: ")
+    name = variety+"_"+str(idx)
                 
     err = point_cloud_to_save.write(os.path.join(root.point_cloud,name+'.ply'))
     
@@ -130,7 +229,7 @@ def displayer(zed, viewer, image_L, image_R, point_cloud, res):
     """
 
     # Retrieve resolution from the screen where the data stream is displayed
-    root = tk.Tk()
+    root = Tk()
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
 
@@ -164,8 +263,9 @@ def main():
     """Main function to run the ZED camera
     """
 
-    base_root = '/media/jetson/Volume/Data'
-    root = storing_data(base_root)
+    main_root = '/media/jetson/Volume/Data'
+    
+    root = storing_data(main_root)
 
     init, runtime_parameters = params()
 
@@ -227,6 +327,7 @@ def main():
                 zed.retrieve_image(image_R_to_save, sl.VIEW.RIGHT)
 
                 timestamp = zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)  # Get the timestamp at the time the image was captured
+
                 err, i = file_writer(root, i, timestamp.get_milliseconds(),  dist, point_cloud_to_save, image_L_to_save, image_R_to_save)
 
                 if(err == sl.ERROR_CODE.SUCCESS):
