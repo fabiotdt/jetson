@@ -7,28 +7,52 @@ import sys
 import csv
 import cv2
 import matplotlib.pyplot as plt
-from tkinter import *
+from OpenGL.GLUT import *
+#import tkinter as tk
 
-flowers = {
-    'ager' : 'agerato',
-    'bocl' : 'bocche_leone',
-    'bego' : 'begonie',
-    'marg' : 'margherite',
-    'cale' : 'calendule',
-    'borr' : 'borraggine',
-    'fior' : 'fiordaliso',
-    'dagr' : 'dalie_grandi',
-    'dapi' : 'dalie_picole',
-    'garo' : 'garofani',
-    'fucs' : 'fucsie',
-    'impa' : 'impatients',
-    'gera' : 'geranei',
-    'prim' : 'primule',
+def selectFromDict(name):
+
+    flowers = {
+    'agerato' : 'ager',
+    #'bocche_leone' : 'bocl',
+    #'begonie' : 'bego',
+    #'margherite' : 'marg',
+    #'calendule' : 'cale',
+    #'borraggine' : 'borr',
+    'fiordaliso' : 'fior',
+    'dalie_grandi' : 'dagr',
+    'dalie_picole' : 'dapi',
+    # 'garofani' : 'garo',
+    'fucsie' : 'fucs',
+    #'impatients' : 'impa',
+    #'geranei' : 'gera',
+    #'primule' : 'prim',
     'rose' : 'rose',
-    'taget' : 'tagete',
-    'vipo' : 'violette_piccole',
-    'viga' : 'violette_grandi'
+    'tagete': 'taget',
+    'violette_piccole' : 'vipo',
+    'violette_grandi': 'viga'
     }
+
+    index = 0
+    indexValidList = []
+    print('Select a ' + name + ':')
+    for optionName in flowers:
+        index = index + 1
+        indexValidList.extend([flowers[optionName]])
+        print(str(index) + ') ' + optionName)
+    inputValid = False
+    while not inputValid:
+        inputRaw = input(name + ': ')
+        inputNo = int(inputRaw) - 1
+        if inputNo > -1 and inputNo < len(indexValidList):
+            selected = indexValidList[inputNo]
+            print('Selected ' +  name + ': ' + selected)
+            inputValid = True
+            break
+        else:
+            print('Please select a valid ' + name + ' number')
+
+    return selected
 
 class storing_data():
     def __init__(self, base_root):
@@ -39,78 +63,6 @@ class storing_data():
         self.depth_img = os.path.join(base_root, 'depth')
         self.point_cloud = os.path.join(base_root, 'point_cloud')
         self.recap_root = os.path.join(base_root, 'recap')
-
-def namer():
-
-   #Create an instance of the canvas
-   win = Tk()
-
-   #Select the title of the window
-   win.title("tutorialspoint.com")
-
-   #Define the geometry of the window
-   win.geometry("600x600")   
-
-   ager = Button(win, text = "agerato", command = lambda: is_name('ager', win))
-   ager.pack(padx = 1, pady = 1)
-
-   bocl = Button(win, text = "bocche di leone", command = lambda: is_name('bocl', win))
-   bocl.pack(padx = 1, pady = 1)
-
-   bego = Button(win, text = "begonie", command = lambda: is_name('bego', win))
-   bego.pack(padx = 1, pady = 1)
-
-   marg = Button(win, text = "margherite", command = lambda: is_name('marg', win))
-   marg.pack(padx = 1, pady = 1)
-
-   cale = Button(win, text = "calendule", command = lambda: is_name('cale', win))
-   cale.pack(padx = 1, pady = 1)
-
-   borr = Button(win, text = "borraggine", command = lambda: is_name('borr', win))
-   borr.pack(padx = 1, pady = 1)
-
-   fior = Button(win, text = "fiordaliso", command = lambda: is_name('fior', win))
-   fior.pack(padx = 1, pady = 1)
-
-   dagr = Button(win, text = "dalie grandi", command = lambda: is_name('dagr', win))
-   dagr.pack(padx = 1, pady = 1)
-
-   dapi = Button(win, text = "dalie piccole", command = lambda: is_name('dapi', win))
-   dapi.pack(padx = 1, pady = 1)
-
-   garo = Button(win, text = "garofani", command = lambda: is_name('garo', win))
-   garo.pack(padx = 1, pady = 1)
-
-   fucs = Button(win, text = "fucsie", command = lambda: is_name('fucs', win))
-   fucs.pack(padx = 1, pady = 1)
-
-   impa = Button(win, text = "impatients", command = lambda: is_name('impa', win))
-   impa.pack(padx = 1, pady = 1)
-
-   gera = Button(win, text = "geranei", command = lambda: is_name('gera', win))
-   gera.pack(padx = 1, pady = 1)
-
-   prim = Button(win, text = "primule", command = lambda: is_name('prim', win))
-   prim.pack(padx = 1, pady = 1)
-
-   rose = Button(win, text = "rose", command = lambda: is_name('rose', win))
-   rose.pack(padx = 1, pady = 1)
-
-   taget = Button(win, text = "tagete", command = lambda: is_name('taget', win))
-   taget.pack(padx = 1, pady = 1)
-
-   vipo = Button(win, text = "violette piccole", command = lambda: is_name('vipo', win))
-   vipo.pack(padx = 1, pady = 1)
-
-   viga = Button(win, text = "violette grandi", command = lambda: is_name('viga', win))
-   viga.pack(padx = 1, pady = 1)
-
-   win.mainloop()
-
-def is_name(name, win):
-   
-   win.destroy()
-   return name
 
 def params():
     
@@ -140,7 +92,7 @@ def params():
 
     return init_params, runtime_parameters
 
-def file_writer(root, idx, timestamp, dist, point_cloud_to_save, image_L_to_save=None, image_R_to_save=None):
+def file_writer(root, idx, timestamp, dist, point_cloud_to_save, image_L_to_save, image_R_to_save):
 
     """
     Generate a csv file containing information about the retrieved data. Write the point cloud to a file and save the images.
@@ -157,28 +109,22 @@ def file_writer(root, idx, timestamp, dist, point_cloud_to_save, image_L_to_save
         err (pyzed.sl.ERROR_CODE): The error code if the point cloud was not saved
         idx (int): The index of the point cloud
     """
+
+    #variety = selectFromDict('variety')
     
-    namer()
-    variety = is_name(
-        
-    )
-    variety = input("Insert the variety of the flower: ")
-    name = variety+"_"+str(idx)
+    name = "variety"+"_"+str(idx)
                 
     err = point_cloud_to_save.write(os.path.join(root.point_cloud,name+'.ply'))
     
     if image_L_to_save is not None: cv2.imwrite(os.path.join(root.left_img,name+'_L.jpg'), image_L_to_save.get_data())
     if image_R_to_save is not None: cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), image_R_to_save.get_data())    
     
-    with open('list.csv', 'a', encoding='UTF8') as f:
+    with open(os.path.join(root.recap_root, 'list.csv'), 'a', encoding='UTF8') as f:
         writer = csv.writer(f)
         writer.writerow([name, timestamp, round(dist,4), err,'SUCCESS' if image_L_to_save is not None else 'ERROR', 'SUCCESS' if image_R_to_save is not None else 'ERROR',  idx])
         f.close()
 
-    idx+=1
-
     return err, idx
-
 
 def compute_centre(res, point_cloud):
 
@@ -229,9 +175,12 @@ def displayer(zed, viewer, image_L, image_R, point_cloud, res):
     """
 
     # Retrieve resolution from the screen where the data stream is displayed
-    root = Tk()
+    """root = tk.Tk()
     screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
+    screen_height = root.winfo_screenheight()"""
+
+    screen_width = int(glutGet(GLUT_SCREEN_WIDTH))
+    screen_height = int(glutGet(GLUT_SCREEN_HEIGHT))
 
     # Retrieve the left image, right image, point cloud
     zed.retrieve_measure(point_cloud, sl.MEASURE.XYZRGBA,sl.MEM.CPU, res)
@@ -245,13 +194,13 @@ def displayer(zed, viewer, image_L, image_R, point_cloud, res):
     # Create a window to display the left image
     cv2.namedWindow("LEFT_IMAGES", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("LEFT_IMAGES", int(screen_width*0.22), int(screen_height*0.4))
-    cv2.moveWindow("LEFT_IMAGES", int(screen_width*0.55), int(screen_width*0.5))
+    cv2.moveWindow("LEFT_IMAGES", int(screen_width*0.55), int(screen_height*0.5))
     cv2.imshow("LEFT_IMAGES", image_L_display)
     cv2.waitKey(1)
     # Create a window to display the right image
     cv2.namedWindow("RIGHT_IMAGES", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("RIGHT_IMAGES", int(screen_width*0.22), int(screen_height*0.4))
-    cv2.moveWindow("RIGHT_IMAGES", int(screen_width*0.85), int(screen_width*0.5))
+    cv2.moveWindow("RIGHT_IMAGES", int(screen_width*0.85), int(screen_height*0.5))
     cv2.imshow("RIGHT_IMAGES", image_R_display)
     cv2.waitKey(1)
 
@@ -327,14 +276,15 @@ def main():
                 zed.retrieve_image(image_R_to_save, sl.VIEW.RIGHT)
 
                 timestamp = zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)  # Get the timestamp at the time the image was captured
-
+                
                 err, i = file_writer(root, i, timestamp.get_milliseconds(),  dist, point_cloud_to_save, image_L_to_save, image_R_to_save)
 
                 if(err == sl.ERROR_CODE.SUCCESS):
                     print("point cloud saved\n")
                 else:
                     print("the point cloud has NOT been saved\n")
-                viewer.save_data = False
+                    viewer.save_data = False
+
 
     cv2.destroyAllWindows()
     viewer.exit()
