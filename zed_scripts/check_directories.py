@@ -19,7 +19,7 @@ varieties = {
     'gera' : 'geranei',
     'prim' : 'primule',
     'rose' : 'rose',
-    'tage' : 'tagete',
+    'taget' : 'tagete',
     'vipo' : 'violette_piccole',
     'viga' : 'violette_grandi'
     }
@@ -43,6 +43,7 @@ class storing_data():
     
     def count_flowers(self, path):
         files = [code[:4] for code in os.listdir(path)]
+
         flowers = {}
         #create a dicionary with the flowers and the number of images
         for key in self.flowers.keys():
@@ -50,10 +51,10 @@ class storing_data():
         return flowers
     
 
-#base_root = '/media/jetson/Volume/Data'
-#base_root = '/home/jetson/Documents/Fabio/Data'
-base_root = '/media/jetson/TDTF_sd/Data'
+base_root = '/media/jetson/Volume/Data'
 root = storing_data(base_root, varieties)
+
+count_flowers = root.count_flowers(root.left_img)
 
 frame = tk.Tk()
 screen_width = frame.winfo_screenwidth()
@@ -68,21 +69,12 @@ def update():
     d_img_num.config(text=str(root.__len__(root.depth_img)))
     p_cloud_num.config(text=str(root.__len__(root.point_cloud)))
     recap_num.config(text=str(root.__len__(root.recap_root)))
-
-    for idk, key in enumerate(varieties):
-
-        number = root.count_flowers(root.left_img)[key]
-
-        key_num = tk.Label(frame, text = str(number), font=("Helvetica"))
-        key_num.grid(row=idk, column=5, ipadx=2, ipady=2)
-
-        #key_num.config(text=str(number))  
     
     frame.after(1000, update)
 
 
 l_img = tk.Label(frame, text="Left image: ", font=("Helvetica"))
-l_img.grid(row=0, column=0, ipadx=2, ipady=2)
+l_img.grid(row=0, column=0, ipadx=10, ipady=10)
 
 l_img_num = tk.Label(frame, font=("Helvetica"))
 l_img_num.grid(row=0, column=1, ipadx=2, ipady=2)
@@ -96,13 +88,13 @@ r_img_num.grid(row=1, column=1, ipadx=2, ipady=2)
 d_img = tk.Label(frame, text="Depth image: ", font=("Helvetica"))
 d_img.grid(row=2, column=0, ipadx=2, ipady=2)
 
-d_img_num = tk.Label(frame, font=("Helvetica"))
+d_img_num = tk.Label(frame, font=("Helvetica", 16))
 d_img_num.grid(row=2, column=1, ipadx=2, ipady=2)
 
 p_cloud = tk.Label(frame, text="Point cloud: ", font=("Helvetica"))
 p_cloud.grid(row=3, column=0, ipadx=2, ipady=2)
 
-p_cloud_num = tk.Label(frame, font=("Helvetica"))
+p_cloud_num = tk.Label(frame, font=("Helvetica", 16))
 p_cloud_num.grid(row=3, column=1, ipadx=2, ipady=2)
 
 recap = tk.Label(frame, text="Recap: ", font=("Helvetica"))
@@ -111,13 +103,7 @@ recap.grid(row=4, column=0, ipadx=2, ipady=2)
 recap_num = tk.Label(frame, font=("Helvetica"))
 recap_num.grid(row=4, column=1, ipadx=2, ipady=2)
 
-for idk, key in enumerate(varieties):
 
-    key = tk.Label(frame, text=varieties[key]+": " , font=("Helvetica"))
-    key.grid(row=idk, column=4, ipadx=2, ipady=2)
-
-    """key_num = tk.Label(frame, font=("Helvetica"))
-    key_num.grid(row=idk, column=5, ipadx=2, ipady=2)"""
 
 update()
 frame.mainloop()
