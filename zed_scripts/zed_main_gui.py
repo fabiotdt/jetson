@@ -81,7 +81,6 @@ def file_writer(variety, writer_input, win):
         point_cloud_to_save (pyzed.sl.Mat): The point cloud to save
         image_L_to_save (pyzed.sl.Mat, optional): The left image to save. Default to None.
         image_R_to_save (pyzed.sl.Mat, optional): The right image to save. Default to None.
-        depth_map (pyzed.sl.Mat, optional): The depth map to save. Default to None.
 
     Returns:
         err (pyzed.sl.ERROR_CODE): The error code if the point cloud was not saved
@@ -90,66 +89,128 @@ def file_writer(variety, writer_input, win):
     
     win.destroy()
     
-    root, idx, timestamp, dist, point_cloud, image_L, image_R, depth_map = writer_input
+    root, idx, timestamp, dist, point_cloud_to_save, image_L_to_save, image_R_to_save = writer_input
 
     name = variety+"_"+str(idx)
                 
-    err = point_cloud.write(os.path.join(root.point_cloud,name+'.ply'))
-    #if depth_map is not None: save = depth_map.write(os.path.join(root.depth_img,name + '.png'))
-    if depth_map is not None: cv2.imwrite(os.path.join(root.depth_img,name+'.png'), depth_map.get_data())
-
-    if image_L is not None: cv2.imwrite(os.path.join(root.left_img,name+'_L.jpg'), image_L.get_data())
-    if image_R is not None: cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), image_R.get_data())
-       
-
+    err = point_cloud_to_save.write(os.path.join(root.point_cloud,name+'.ply'))
+    
+    if image_L_to_save is not None: cv2.imwrite(os.path.join(root.left_img,name+'_L.jpg'), image_L_to_save.get_data())
+    if image_R_to_save is not None: cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), image_R_to_save.get_data())    
+    
     with open(os.path.join(root.recap_root, 'list.csv'), 'a', encoding='UTF8') as f:
         writer = csv.writer(f)
-        writer.writerow([name, timestamp, round(dist,4), err,'SUCCESS' if image_L is not None else 'ERROR', 'SUCCESS' if image_R is not None else 'ERROR', 'SUCCESS' if depth_map is not None else 'ERROR',  idx])
+        writer.writerow([name, timestamp, round(dist,4), err,'SUCCESS' if image_L_to_save is not None else 'ERROR', 'SUCCESS' if image_R_to_save is not None else 'ERROR',  idx])
         f.close()
 
     if(err == sl.ERROR_CODE.SUCCESS):
-        print("all saved\n")
+        print("point cloud saved\n")
     else:
-        print("the point cloud OR the depth map has NOT been saved\n")
+        print("the point cloud has NOT been saved\n")
 
 
 def namer(writer_input):
 
-    """Create a GUI to select the flower variety to save.
+   #Create an instance of the canvas
+   win = Tk()
 
-    Args:
-        root (storing_data): The root directory to store the data
-        idx (int): The index of the point cloud
-        timestamp (int): The timestamp of the point cloud
-        point_cloud_to_save (pyzed.sl.Mat): The point cloud to save
-        image_L_to_save (pyzed.sl.Mat, optional): The left image to save. Default to None.
-        image_R_to_save (pyzed.sl.Mat, optional): The right image to save. Default to None.
+   #Select the title of the window
+   win.title("Choose the flower")
 
-    Returns:
-        None
-        However, it calls the file_writer function when one of the button is pressed.
-    """
+   #Define the geometry of the window
+   win.geometry("600x600")   
 
-    #Create an instance of the canvas
-    win = Tk()
+   ager_n = Label(win, text="agerato: ")
+   ager_n.grid(row=0, column=0, padx = 1, pady = 1)
+   ager = Button(win, text = "ager", command = lambda : file_writer('ager', writer_input, win))
+   ager.grid(row=0, column=1, padx = 1, pady = 1)
 
-    #Select the title of the window
-    win.title("Choose the flower")
+   bocl_n = Label(win, text="bocche di leone: ")
+   bocl_n.grid(row=1, column=0, padx = 1, pady = 1)
+   bocl = Button(win, text = "bocl", command = lambda: file_writer('bocl', writer_input, win))
+   bocl.grid(row=1, column=1, padx = 1, pady = 1)
 
-    #Define the geometry of the window
-    win.geometry("600x700")   
+   bego_n = Label(win, text="begonie: ")
+   bego_n.grid(row=2, column=0, padx = 1, pady = 1)
+   bego = Button(win, text = "bego", command = lambda: file_writer('bego', writer_input, win))
+   bego.grid(row=2, column=1, padx = 1, pady = 1)
 
-    #Create a label to display the instructions
-    instructions = Label(win, text="Choose the flower you want to save")
-    instructions.grid(row=0, column=0, columnspan=2, padx = 1, pady = 1)
+   marg_n = Label(win, text="margherite: ")
+   marg_n.grid(row=3, column=0, padx = 1, pady = 1)
+   marg = Button(win, text = "marg", command = lambda: file_writer('marg', writer_input, win))
+   marg.grid(row=3, column=1, padx = 1, pady = 1)
+
+   cale_n = Label(win, text="calendule: ")
+   cale_n.grid(row=4, column=0, padx = 1, pady = 1)
+   cale = Button(win, text = "cale", command = lambda: file_writer('cale', writer_input, win))
+   cale.grid(row=4, column=1, padx = 1, pady = 1)
+
+   borr_n = Label(win, text="borraggine: ")
+   borr_n.grid(row=5, column=0, padx = 1, pady = 1)
+   borr = Button(win, text = "borr", command = lambda: file_writer('borr', writer_input, win))
+   borr.grid(row=5, column=1, padx = 1, pady = 1)
+
+   fior_n = Label(win, text="fiordaliso: ")
+   fior_n.grid(row=6, column=0, padx = 1, pady = 1)
+   fior = Button(win, text = "fior", command = lambda: file_writer('fior', writer_input, win))
+   fior.grid(row=6, column=1, padx = 1, pady = 1)
+
+   dagr_n = Label(win, text="dalie grandi: ")
+   dagr_n.grid(row=7, column=0, padx = 1, pady = 1)
+   dagr = Button(win, text = "dagr", command = lambda: file_writer('dagr', writer_input, win))
+   dagr.grid(row=7, column=1, padx = 1, pady = 1)
+
+   dapi_n = Label(win, text="dalie piccole: ")
+   dapi_n.grid(row=8, column=0, padx = 1, pady = 1)
+   dapi = Button(win, text = "dapi", command = lambda: file_writer('dapi', writer_input, win))
+   dapi.grid(row=8, column=1, padx = 1, pady = 1)
+
+   garo_n = Label(win, text="garofani: ")
+   garo_n.grid(row=9, column=0, padx = 1, pady = 1)
+   garo = Button(win, text = "garo", command = lambda: file_writer('garo', writer_input, win))
+   garo.grid(row=9, column=1, padx = 1, pady = 1)
+
+   fucs_n = Label(win, text="fucsie: ")
+   fucs_n.grid(row=10, column=0, padx = 1, pady = 1)
+   fucs = Button(win, text = "garo", command = lambda: file_writer('garo', writer_input, win))
+   fucs.grid(row=10, column=1, padx = 1, pady = 1)
+
+   impa_n = Label(win, text="impatients: ")
+   impa_n.grid(row=11, column=0, padx = 1, pady = 1)
+   impa = Button(win, text = "impa", command = lambda: file_writer('impa', writer_input, win))
+   impa.grid(row=11, column=1, padx = 1, pady = 1)
+
+   gera_n = Label(win, text="geranei: ")
+   gera_n.grid(row=12, column=0, padx = 1, pady = 1)
+   gera = Button(win, text = "gera", command = lambda: file_writer('gera', writer_input, win))
+   gera.grid(row=12, column=1, padx = 1, pady = 1)
+
+   prim_n = Label(win, text="primule: ")
+   prim_n.grid(row=13, column=0, padx = 1, pady = 1)
+   prim = Button(win, text = "prim", command = lambda: file_writer('prim', writer_input, win))
+   prim.grid(row=13, column=1, padx = 1, pady = 1)
+
+   rose_n = Label(win, text="rose: ")
+   rose_n.grid(row=14, column=0, padx = 1, pady = 1)
+   rose = Button(win, text = "rose", command = lambda: file_writer('rose', writer_input, win))
+   rose.grid(row=14, column=1, padx = 1, pady = 1)
+
+   taget_n = Label(win, text="tagete: ")
+   taget_n.grid(row=15, column=0, padx = 1, pady = 1)
+   taget = Button(win, text = "tage", command = lambda: file_writer('tage', writer_input, win))
+   taget.grid(row=15, column=1, padx = 1, pady = 1)
    
-    for idx, key in enumerate(flowers.keys()):
-        key_lab = Label(win, text=flowers[key]+": ")
-        key_lab.grid(row=idx+1, column=0, padx = 1, pady = 1)  
-        key_but = Button(win, text = key, command = lambda key=key: file_writer(key, writer_input, win))
-        key_but.grid(row=idx+1, column=1, padx = 1, pady = 1)
-    
-    win.mainloop()
+   vipo_n = Label(win, text="violette piccole: ")
+   vipo_n.grid(row=16, column=0, padx = 1, pady = 1)
+   vipo = Button(win, text = "vipo", command = lambda: file_writer('vipo', writer_input, win))
+   vipo.grid(row=16, column=1, padx = 1, pady = 1)
+
+   viga_n = Label(win, text="violette grandi: ")
+   viga_n.grid(row=17, column=0, padx = 1, pady = 1)
+   viga = Button(win, text = "viga", command = lambda: file_writer('viga', writer_input, win))
+   viga.grid(row=17, column=1, padx = 1, pady = 1)
+
+   win.mainloop()
 
 def compute_centre(res, point_cloud):
 
@@ -266,7 +327,7 @@ def main():
     if 'list.csv' not in os.listdir(root.recap_root):
         with open(os.path.join(root.recap_root, 'list.csv'), 'w', encoding='UTF8') as f:
             writer = csv.writer(f)
-            writer.writerow(["filename","timestamp", "centre_depth", "point_cloud", "left_image", "right_image", "depth_map"  "index"])
+            writer.writerow(["filename","timestamp", "centre_depth", "point_cloud", "left_image", "right_image",  "index"])
             f.close()
     else:
         with open(os.path.join(root.recap_root, 'list.csv'), 'r', encoding='UTF8') as f:
@@ -287,22 +348,19 @@ def main():
         if(viewer.save_data == True):
 
             dist = compute_centre(res, point_cloud)
-
             point_cloud_to_save = sl.Mat()
-            depth_to_save = sl.Mat()
+            #depth_to_save = sl.Mat()
             image_L_to_save = sl.Mat()
             image_R_to_save = sl.Mat()
 
             zed.retrieve_measure(point_cloud_to_save, sl.MEASURE.XYZRGBA, sl.MEM.CPU)
             #zed.retrieve_measure(depth_to_save, sl.MEASURE.DEPTH, sl.MEM.CPU)
-            zed.retrieve_image(depth_to_save, sl.VIEW.DEPTH)
-
             zed.retrieve_image(image_L_to_save, sl.VIEW.LEFT)
             zed.retrieve_image(image_R_to_save, sl.VIEW.RIGHT)
 
             timestamp = zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)  # Get the timestamp at the time the image was captured
 
-            writer_input = [root, i, timestamp.get_milliseconds(),  dist, point_cloud_to_save, image_L_to_save, image_R_to_save, depth_to_save]
+            writer_input = [root, i, timestamp.get_milliseconds(),  dist, point_cloud_to_save, image_L_to_save, image_R_to_save]
             
             namer(writer_input)
             
