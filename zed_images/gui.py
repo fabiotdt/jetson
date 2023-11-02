@@ -1,7 +1,31 @@
 import cv2
-#import pyzed.sl as sl
+import pyzed.sl as sl
 from tkinter import *
 from PIL import Image, ImageTk
+
+def params():
+    
+    """Set the parameters for the ZED camera
+    Args:
+        None
+
+    Returns:  
+        init_params (pyzed.sl.InitParameters): The parameters for the ZED camera
+        runtime_parameters (pyzed.sl.RuntimeParameters): The runtime parameters for the ZED camera
+    """
+    
+    #Create a InitParameters object and set configuration parameters
+    init_params = sl.InitParameters()
+    init_params.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP # Standard coordinate system
+    init_params.camera_resolution = sl.RESOLUTION.HD720 # Image Resolution (HD2K, HD1080, HD720, SVGA, VGA)
+    init_params.camera_fps = 30
+
+    # Create and set RuntimeParameters after opening the camera
+    runtime_parameters = sl.RuntimeParameters()
+    runtime_parameters.confidence_threshold = 100
+    runtime_parameters.texture_confidence_threshold = 100
+
+    return init_params, runtime_parameters
 
 
 def description(win, screen_width, screen_height):
@@ -22,12 +46,14 @@ def description(win, screen_width, screen_height):
     txt.grid(row=0, column=0, rowspan = 4, columnspan=4, padx = 5, pady = 5)
 
     txt.insert(END,"This is an interface to manage the images and the measures of the flowers.\n\n")
-    txt.insert(END,"The program is divided in 4 parts:\n")
-    txt.insert(END,"0) flower pixking. \n")
+    txt.insert(END,"The program is divided in 5 parts:\n")
+    txt.insert(END,"0) flower pixking (of course). \n")
     txt.insert(END,"1) select the flower's variety, this will be done by a chelist.\n")
     txt.insert(END,"2) measure the flower, this will be done by the operator thanks to a caliber.\n")
     txt.insert(END,"3) image acquisition, this will be done by the ZED camera.\n")
     txt.insert(END,"4) image and information saving, this will be done by the program.\n")
+
+    txt.configure(state='disabled')
 
 def sample_measure(win):
     
@@ -48,21 +74,41 @@ def sample_measure(win):
 
 def zed_stream_image(win, screen_width, screen_height):
         
-        """
-        Create a canvas to display the image from the ZED camera.
+    """
+    Create a canvas to display the image from the ZED camera.
+
+    Args:
+        win (Tk): The main window
+        screen_width (int): The width of the screen
+        screen_height (int): The height of the screen
+
+    Returns:
+        None
+    """
+
+    init, runtime_parameters = params()
+    zed = sl.Camera()
+    status = zed.open(init)
+    if status != sl.ERROR_CODE.SUCCESS:
+        print(repr(status))
+        exit()
     
-        Args:
-            win (Tk): The main window
-            screen_width (int): The width of the screen
-            screen_height (int): The height of the screen
-    
-        Returns:
-            None
-        """
-    
-        # Create the canvas to display the image
-        canvas = Canvas(win, width=int(screen_width/2), height=int(screen_height/2))
-        canvas.grid(row=5, column=4, rowspan = 4, columnspan=3, padx = 10, pady = 20)
+    # Set resolution for the data caputred by the ZED camera
+    res = sl.Resolution()
+    res.width = zed.get_camera_information().camera_configuration.resolution.width
+    res.height = zed.get_camera_information().camera_configuration.resolution.height
+
+    image_L = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
+    image_R = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
+
+    zed.retrieve_image(image_L, sl.VIEW.LEFT)
+    zed.retrieve_image(image_R, sl.VIEW.RIGHT)
+
+    # Create the canvas to display the image
+    canvas = Canvas(win, width=int(screen_width/30), height=int(screen_height/30))
+    canvas.grid(row=6, column=4, rowspan = 4, columnspan=3, padx = 10, pady = 20)
+
+        # Create the image to display
     
 def checklist_var(win):
 
@@ -96,12 +142,17 @@ def checklist_var(win):
     
     checkboxes = []
     selected_options = []  # List to store selected options
+    #sel_opt = ""
 
     def update_selected(option_key, var):
         if var.get() == 1:
             selected_options.append(option_key)
+            #sel_opt = option_key
         else:
             selected_options.remove(option_key)
+            #sel_opt = ""
+
+    print('selected option: ', selected_options)
     
     for idx, key in enumerate(flowers.keys()):
         var = IntVar()
@@ -241,11 +292,14 @@ def save_data(input, confirm):
     print()
 
     # Setting all the value back to the original one
+
     for var in input[4]:
         var.set(0)
     input[0].set(0.0)
     input[1].set(0.0)
     input[2].set(0.0)
+
+    input[3].clear()
 
 
 def submit(variety, calix_var, all_var, diameter_var, checkboxes):
@@ -276,6 +330,8 @@ def submit(variety, calix_var, all_var, diameter_var, checkboxes):
     if variety == []:
         worning_window("Please select a flower variety")
         return
+    
+    print('Checking variety ', variety)
     # Check if only one flower variety has been selected
     if len(variety) > 1:
         worning_window("Please select ONLY ONE flower variety")
@@ -327,7 +383,7 @@ def main_window():
     
     # Create the label and canvas to display the image from the ZED camera
     zed_image = Label(win, text="ZED camera LEFT image", font=('calibre',20, 'bold'))
-    samp_measure.grid(row=5, column=4, columnspan=3, padx = 1, pady = 1)
+    zed_image.grid(row=5, column=4, columnspan=3, padx = 1, pady = 10)
     zed_stream_image(win, screen_width, screen_height)
 
     # Create the button to submit everything
