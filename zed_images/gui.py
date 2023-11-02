@@ -42,8 +42,8 @@ def description(win, screen_width, screen_height):
         None
     """
 
-    txt = Text(win, height=10, width=int(screen_width/30), font = ('calibre', 20))
-    txt.grid(row=0, column=0, rowspan = 4, columnspan=4, padx = 5, pady = 5)
+    txt = Text(win, height=10, width=int(screen_width/32), font = ('calibre', 20))
+    txt.grid(row=0, column=0, rowspan = 4, columnspan=4, padx = 1, pady = 5)
 
     txt.insert(END,"This is an interface to manage the images and the measures of the flowers.\n\n")
     txt.insert(END,"The program is divided in 5 parts:\n")
@@ -72,7 +72,7 @@ def sample_measure(win):
         image_label.image = img
         image_label.grid(row=1, column=4, rowspan = 4, columnspan=3, padx = 150, pady = 20)
 
-def zed_stream_image(win, screen_width, screen_height):
+def zed_stream_image(win, sc_w, sc_h):
         
     """
     Create a canvas to display the image from the ZED camera.
@@ -104,11 +104,25 @@ def zed_stream_image(win, screen_width, screen_height):
     zed.retrieve_image(image_L, sl.VIEW.LEFT)
     zed.retrieve_image(image_R, sl.VIEW.RIGHT)
 
-    # Create the canvas to display the image
-    canvas = Canvas(win, width=int(screen_width/30), height=int(screen_height/30))
-    canvas.grid(row=6, column=4, rowspan = 4, columnspan=3, padx = 10, pady = 20)
+    while win.winfo_exists():
+        zed.grab(runtime_parameters)
+        zed.retrieve_image(image_L, sl.VIEW.LEFT)
+        cv2.namedWindow("LEFT_IMAGES", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("LEFT_IMAGES", int(sc_w*0.24), int(sc_h*0.4))
+        cv2.moveWindow("LEFT_IMAGES", int(sc_w*0.52), int(sc_h*0.55))
+        cv2.imshow("LEFT_IMAGES", image_L.get_data())
+        cv2.waitKey(1)
 
-        # Create the image to display
+    # Create the canvas to display the image
+    """canvas = Canvas(win, width=int(screen_width/30), height=int(screen_height/30))
+    canvas.grid(row=6, column=4, rowspan = 4, columnspan=3, padx = 10, pady = 20)"""
+
+    """vid = PhotoImage(file=image_L.get_data())
+    vid_label = Label(win, image=vid)
+    vid_label.image = vid
+    vid_label.grid(row=6, column=4, rowspan = 4, columnspan=3, padx = 150, pady = 20)"""
+
+    #image_L.get_data()
     
 def checklist_var(win):
 
@@ -373,6 +387,10 @@ def main_window():
 
     # Create the variables of the measures
     measure_var(win, calix_var, all_var, diameter_var)
+
+    # Create the button to submit everything
+    sub_btn = Button(win, text = 'Submit', command = lambda variety=result: submit(variety, calix_var, all_var, diameter_var, checkboxes), font=('calibre',20, 'bold'))
+    sub_btn.grid(row=15,column=0, columnspan=3, padx = 1, pady = 20)
     
     # Create a label and image to display the measure instructions
     samp_measure = Label(win, text="Sample of measurment to take", font=('calibre',20, 'bold'))
@@ -384,12 +402,8 @@ def main_window():
     # Create the label and canvas to display the image from the ZED camera
     zed_image = Label(win, text="ZED camera LEFT image", font=('calibre',20, 'bold'))
     zed_image.grid(row=5, column=4, columnspan=3, padx = 1, pady = 10)
-    zed_stream_image(win, screen_width, screen_height)
+    #zed_stream_image(win, screen_width, screen_height)
 
-    # Create the button to submit everything
-    sub_btn = Button(win, text = 'Submit', command = lambda variety=result: submit(variety, calix_var, all_var, diameter_var, checkboxes), font=('calibre',20, 'bold'))
-    sub_btn.grid(row=15,column=0, columnspan=3, padx = 1, pady = 20)
-    
     win.mainloop()
 
 main_window()
