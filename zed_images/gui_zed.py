@@ -1,11 +1,15 @@
+from typing import Any
 import cv2
 import pyzed.sl as sl
 from tkinter import *
 from PIL import Image, ImageTk
+import os
+import csv
 
 class ZedVideoApp:
-    def __init__(self, root):
+    def __init__(self, root, streaming = True):
         self.root = root
+        self.streaming = streaming
 
         # Create a video frame on the right
         self.video_frame = Frame(self.root, width=int(self.root.winfo_screenwidth()/2))
@@ -16,6 +20,9 @@ class ZedVideoApp:
         self.zed = sl.Camera()
         self.init_params = sl.InitParameters()
         self.runtime_params = sl.RuntimeParameters()
+        self.res = sl.Resolution()
+        self.res.width = self.zed.get_camera_information().camera_configuration.resolution.width
+        self.res.height = self.zed.get_camera_information().camera_configuration.resolution.height
 
         if self.zed.is_opened():
             self.zed.close()
@@ -28,9 +35,9 @@ class ZedVideoApp:
             print(f"ZED Camera Open error: {err}")
             return
 
-        self.streaming = True
-        self.update_video_stream()
-
+        if self.streaming:
+            self.update_video_stream()
+    
     def update_video_stream(self):
         if self.zed.grab(self.runtime_params) == sl.ERROR_CODE.SUCCESS:
             left_image = sl.Mat()
@@ -45,6 +52,18 @@ class ZedVideoApp:
             self.video_label.image = photo
             self.video_frame.update()
             self.root.after(10, self.update_video_stream)
+    
+    def acquire_images(self):
+        if self.zed.grab(self.runtime_params) == sl.ERROR_CODE.SUCCESS:
+            left_image = sl.Mat()
+            right_image = sl.Mat()
+            self.zed.retrieve_image(left_image, sl.VIEW.LEFT)
+            self.zed.retrieve_image(right_image, sl.VIEW.RIGHT)
+            
+            return left_image, right_image
+    
+    def runtime(self):
+        return self.zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)
 
 
 def description(win, screen_width, screen_height):
@@ -132,8 +151,6 @@ def checklist_var(win):
         else:
             selected_options.remove(option_key)
             #sel_opt = ""
-
-    print('selected option: ', selected_options)
     
     for idx, key in enumerate(flowers.keys()):
         var = IntVar()
@@ -259,29 +276,98 @@ def worning_window(warning_text):
 
     worning.mainloop()
 
+class storing_data():
+    def __init__(self):
+        base_root = '/media/jetson/TDTF_sd/Data_measurments'
+        self.left_img = os.path.join(base_root, 'left_image')
+        self.right_img = os.path.join(base_root, 'right_image')
+        self.dataset = os.path.join(base_root, 'dataset')
+
+def acquire_image():
+
+    zed = sl.Camera()
+    init_params = sl.InitParameters()
+    res = sl.Resolution()
+    runtime_params = sl.RuntimeParameters()
+    res.width = zed.get_camera_information().camera_configuration.resolution.width
+    res.height = zed.get_camera_information().camera_configuration.resolution.height
+
+    if zed.is_opened():
+        zed.close()
+
+        init_params.camera_resolution = sl.RESOLUTION.HD720
+        init_params.camera_fps = 30
+
+    image_L = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
+    image_R = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
+
+    if zed.grab(runtime_params) == sl.ERROR_CODE.SUCCESS:
+        image_L = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
+        image_R = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
+
+        zed.retrieve_image(image_L, sl.VIEW.LEFT)
+        zed.retrieve_image(image_R, sl.VIEW.RIGHT)
+
+    timestamp = zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)
+
+    return image_L, image_R, timestamp
+
+    # TODO creare una funzione che salva immagine nella classe video app
+
 def save_data(input, confirm):
 
     """
     This function will save the image, a csv containing data collection inforation and a csv containing measurment information.
     """
     confirm.destroy()
-  
+
+    root = storing_data()
+    # Qcquire left and right image from the ZED camera
+    image_L, image_R = ZedVideoApp.acquire_images()
+    # Acquire the timestamp
+    timestamp = ZedVideoApp.runtime()
+       
+    if 'dataset.csv' not in os.listdir(root.dataset):
+        with open(os.path.join(root.dataset, 'dataset.csv'), 'w', encoding='UTF8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["filename","timestamp", "left_image", "right_image", "calix_height", "oveall_height", "diameter", "variety", "index"])
+        f.close()
+    
+    with open(os.path.join(root.dataset, 'dataset.csv'), 'r', encoding='UTF8') as f:
+        final_line = f.readlines()[-1]
+        previous = final_line.split(',')[-1]
+        f.close()
+        print('previous: ', previous)
+        if previous == 'index\n':
+            i = 0
+        else:
+            i = int(previous) + 1
+    
+    name = input[3][0] + '_' + str(i)
+
+    print("Saving data...")
+    print('name: ', name)  
     print('calix: ', input[0].get())
     print('overall: ', input[1].get())
     print('diameter: ', input[2].get())
     print('variety: ', input[3])
-    print()
 
+    if image_L is not None: cv2.imwrite(os.path.join(root.left_img,name+'_L.jpg'), image_L.get_data())
+    if image_R is not None: cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), image_R.get_data())
+    
+    with open(os.path.join(root.dataset, 'dataset.csv'), 'a', encoding='UTF8') as f:
+        writer = csv.writer(f)
+        writer.writerow([name,timestamp,image_L,image_R,input[0],input[1],input[2],input[3],i])
+        f.close()
+    
+    print('Data saved!')
     # Setting all the value back to the original one
-
     for var in input[4]:
         var.set(0)
     input[0].set(0.0)
     input[1].set(0.0)
     input[2].set(0.0)
-
     input[3].clear()
-
 
 def submit(variety, calix_var, all_var, diameter_var, checkboxes):
 
@@ -322,7 +408,7 @@ def submit(variety, calix_var, all_var, diameter_var, checkboxes):
     input = [calix_var, all_var, diameter_var, variety, checkboxes]
     confirm_window(input) 
 
-def main_window():
+def main():
     
     # Create an instance of the canvas
     win = Tk()
@@ -354,6 +440,8 @@ def main_window():
 
     # Create the variables of the measures
     measure_var(win, calix_var, all_var, diameter_var)
+    
+    app = ZedVideoApp(win, streaming=True)
 
     # Create the button to submit everything
     sub_btn = Button(win, text = 'Submit', command = lambda variety=result: submit(variety, calix_var, all_var, diameter_var, checkboxes), font=('calibre',20, 'bold'))
@@ -370,8 +458,7 @@ def main_window():
     zed_image = Label(win, text="ZED camera LEFT image", font=('calibre',20, 'bold'))
     zed_image.grid(row=5, column=4, columnspan=3, padx = 1, pady = 10)
 
-    app = ZedVideoApp(win)
-
     win.mainloop()
 
-main_window()
+if __name__ == '__main__':
+    main()
