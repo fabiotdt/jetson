@@ -16,7 +16,7 @@ class ZedVideoApp:
         self.video_frame.grid(row=6, column=4, rowspan= 15, columnspan=4, padx=1, pady=1)
         self.video_label = Label(self.video_frame)
         self.video_label.pack()
-
+        # Initialize the ZED camera
         self.zed = sl.Camera()
         self.init_params = sl.InitParameters()
         self.runtime_params = sl.RuntimeParameters()
@@ -24,19 +24,20 @@ class ZedVideoApp:
         self.res.width = self.zed.get_camera_information().camera_configuration.resolution.width
         self.res.height = self.zed.get_camera_information().camera_configuration.resolution.height
 
-        if self.zed.is_opened():
-            self.zed.close()
+       # if self.zed.is_opened():
+            #self.zed.close()
 
         self.init_params.camera_resolution = sl.RESOLUTION.HD720
         self.init_params.camera_fps = 30
 
         err = self.zed.open(self.init_params)
+
         if err != sl.ERROR_CODE.SUCCESS:
             print(f"ZED Camera Open error: {err}")
             return
 
-        if self.streaming:
-            self.update_video_stream()
+        #if self.streaming:
+        self.update_video_stream()
     
     def update_video_stream(self):
         if self.zed.grab(self.runtime_params) == sl.ERROR_CODE.SUCCESS:
@@ -51,36 +52,36 @@ class ZedVideoApp:
             self.video_label.config(image=photo)
             self.video_label.image = photo
             self.video_frame.update()
-            self.root.after(10, self.update_video_stream)
+            self.root.after(5, self.update_video_stream)
     
-    def acquire_images(self):
+    def submit_action(self, root, name):
         if self.zed.grab(self.runtime_params) == sl.ERROR_CODE.SUCCESS:
             left_image = sl.Mat()
             right_image = sl.Mat()
             self.zed.retrieve_image(left_image, sl.VIEW.LEFT)
             self.zed.retrieve_image(right_image, sl.VIEW.RIGHT)
-            
-            return left_image, right_image
+
+            if left_image is not None: cv2.imwrite(os.path.join(root.left_img,name+'_L.jpg'), left_image.get_data())
+            if right_image is not None: cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), right_image.get_data())
     
-    def runtime(self):
-        return self.zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)
+            timestamp = self.zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)
+            self.update_video_stream()
+            return timestamp
+    
 
-
-def description(win, screen_width, screen_height):
+def description(win):
     
     """
     Create a text description of the interface.
 
     Args:
         win (Tk): The main window
-        screen_width (int): The width of the screen
-        screen_height (int): The height of the screen
 
     Returns:
         None
     """
-
-    txt = Text(win, height=10, width=int(screen_width/32), font = ('calibre', 20))
+    sc_w = win.winfo_screenwidth()
+    txt = Text(win, height=10, width=int(sc_w/32), font = ('calibre', 20))
     txt.grid(row=0, column=0, rowspan = 4, columnspan=4, padx = 1, pady = 5)
 
     txt.insert(END,"This is an interface to manage the images and the measures of the flowers.\n\n")
@@ -142,15 +143,12 @@ def checklist_var(win):
     
     checkboxes = []
     selected_options = []  # List to store selected options
-    #sel_opt = ""
 
     def update_selected(option_key, var):
         if var.get() == 1:
             selected_options.append(option_key)
-            #sel_opt = option_key
         else:
             selected_options.remove(option_key)
-            #sel_opt = ""
     
     for idx, key in enumerate(flowers.keys()):
         var = IntVar()
@@ -191,7 +189,7 @@ def measure_var(win, calix_var, all_var, diameter_var):
     measure_diameter.grid(row=13,column=1, padx = 10, pady = 10)
 
 
-def confirm_window(input):
+def confirm_window(input, app):
 
     """
     Create a pop-up window to display confirmation messages before saving the data.
@@ -229,7 +227,7 @@ def confirm_window(input):
     worning_label = Label(confirm, text = "Are you sure you want to submit?", font=('calibre',30, 'bold'))
     worning_label.grid(row = 0 , column = 0, columnspan = 2, sticky='nsew')
     # Create the button to confirm choiche the measures
-    Y_btn = Button(confirm, text = 'YES', font=('calibre',20, 'bold'), command = lambda input=input: save_data(input, confirm))
+    Y_btn = Button(confirm, text = 'YES', font=('calibre',20, 'bold'), command = lambda input=input: save_data(input, confirm, app))
     Y_btn.grid(row=1,column=0, columnspan=1, padx = 5, pady = 5, sticky='nsew')
     # Create button to go back
     N_btn = Button(confirm, text = 'NO', font=('calibre',20, 'bold'), command = Close)
@@ -283,93 +281,7 @@ class storing_data():
         self.right_img = os.path.join(base_root, 'right_image')
         self.dataset = os.path.join(base_root, 'dataset')
 
-def acquire_image():
-
-    zed = sl.Camera()
-    init_params = sl.InitParameters()
-    res = sl.Resolution()
-    runtime_params = sl.RuntimeParameters()
-    res.width = zed.get_camera_information().camera_configuration.resolution.width
-    res.height = zed.get_camera_information().camera_configuration.resolution.height
-
-    if zed.is_opened():
-        zed.close()
-
-        init_params.camera_resolution = sl.RESOLUTION.HD720
-        init_params.camera_fps = 30
-
-    image_L = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
-    image_R = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
-
-    if zed.grab(runtime_params) == sl.ERROR_CODE.SUCCESS:
-        image_L = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
-        image_R = sl.Mat(res.width, res.height, sl.MAT_TYPE.U8_C4)
-
-        zed.retrieve_image(image_L, sl.VIEW.LEFT)
-        zed.retrieve_image(image_R, sl.VIEW.RIGHT)
-
-    timestamp = zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)
-
-    return image_L, image_R, timestamp
-
-    # TODO creare una funzione che salva immagine nella classe video app
-
-def save_data(input, confirm):
-
-    """
-    This function will save the image, a csv containing data collection inforation and a csv containing measurment information.
-    """
-    confirm.destroy()
-
-    root = storing_data()
-    # Qcquire left and right image from the ZED camera
-    image_L, image_R = ZedVideoApp.acquire_images()
-    # Acquire the timestamp
-    timestamp = ZedVideoApp.runtime()
-       
-    if 'dataset.csv' not in os.listdir(root.dataset):
-        with open(os.path.join(root.dataset, 'dataset.csv'), 'w', encoding='UTF8') as f:
-            writer = csv.writer(f)
-            writer.writerow(["filename","timestamp", "left_image", "right_image", "calix_height", "oveall_height", "diameter", "variety", "index"])
-        f.close()
-    
-    with open(os.path.join(root.dataset, 'dataset.csv'), 'r', encoding='UTF8') as f:
-        final_line = f.readlines()[-1]
-        previous = final_line.split(',')[-1]
-        f.close()
-        print('previous: ', previous)
-        if previous == 'index\n':
-            i = 0
-        else:
-            i = int(previous) + 1
-    
-    name = input[3][0] + '_' + str(i)
-
-    print("Saving data...")
-    print('name: ', name)  
-    print('calix: ', input[0].get())
-    print('overall: ', input[1].get())
-    print('diameter: ', input[2].get())
-    print('variety: ', input[3])
-
-    if image_L is not None: cv2.imwrite(os.path.join(root.left_img,name+'_L.jpg'), image_L.get_data())
-    if image_R is not None: cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), image_R.get_data())
-    
-    with open(os.path.join(root.dataset, 'dataset.csv'), 'a', encoding='UTF8') as f:
-        writer = csv.writer(f)
-        writer.writerow([name,timestamp,image_L,image_R,input[0],input[1],input[2],input[3],i])
-        f.close()
-    
-    print('Data saved!')
-    # Setting all the value back to the original one
-    for var in input[4]:
-        var.set(0)
-    input[0].set(0.0)
-    input[1].set(0.0)
-    input[2].set(0.0)
-    input[3].clear()
-
-def submit(variety, calix_var, all_var, diameter_var, checkboxes):
+def submit(variety, calix_var, all_var, diameter_var, checkboxes, app):
 
     """
     This function will check if all the data are correct and will call the confirm_window function.
@@ -406,7 +318,58 @@ def submit(variety, calix_var, all_var, diameter_var, checkboxes):
     
     #confirm_window(calix, overall, diameter, variety)
     input = [calix_var, all_var, diameter_var, variety, checkboxes]
-    confirm_window(input) 
+    confirm_window(input, app) 
+
+def save_data(input, confirm, app):
+
+    """
+    This function will save the image, a csv containing data collection inforation and a csv containing measurment information.
+    """
+    confirm.destroy()
+
+    root = storing_data()
+       
+    if 'dataset.csv' not in os.listdir(root.dataset):
+        with open(os.path.join(root.dataset, 'dataset.csv'), 'w', encoding='UTF8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["filename","timestamp", "left_image", "right_image", "calix_height", "oveall_height", "diameter", "variety", "index"])
+        f.close()
+    
+    with open(os.path.join(root.dataset, 'dataset.csv'), 'r', encoding='UTF8') as f:
+        final_line = f.readlines()[-1]
+        previous = final_line.split(',')[-1]
+        f.close()
+        print('previous: ', previous)
+        if previous == 'index\n':
+            i = 0
+        else:
+            i = int(previous) + 1
+    
+    name = input[3][0] + '_' + str(i)
+
+    timestamp = app.submit_action(root, name)
+    # Save the data
+
+    print("Saving data...")
+    print('name: ', name)  
+    print('calix: ', input[0].get())
+    print('overall: ', input[1].get())
+    print('diameter: ', input[2].get())
+    print('variety: ', input[3])
+
+    with open(os.path.join(root.dataset, 'dataset.csv'), 'w', encoding='UTF8') as f:
+        writer = csv.writer(f)
+        writer.writerow([name,timestamp,str(os.path.join(root.left_img,name+'_L.jpg')),str(os.path.join(root.right_img,name+'_R.jpg')),input[0],input[1],input[2],input[3],i])
+        f.close()
+    
+    print('Data saved!')
+    # Setting all the value back to the original one
+    for var in input[4]:
+        var.set(0)
+    input[0].set(0.0)
+    input[1].set(0.0)
+    input[2].set(0.0)
+    input[3].clear()
 
 def main():
     
@@ -425,7 +388,7 @@ def main():
     diameter_var = DoubleVar()
         
     # Create a initial text description
-    description(win, screen_width, screen_height)
+    description(win)
 
     # Create a label to display the instructions
     inst_name = Label(win, text="Choose the flower variety", font=('calibre',20, 'bold'))
@@ -444,7 +407,7 @@ def main():
     app = ZedVideoApp(win, streaming=True)
 
     # Create the button to submit everything
-    sub_btn = Button(win, text = 'Submit', command = lambda variety=result: submit(variety, calix_var, all_var, diameter_var, checkboxes), font=('calibre',20, 'bold'))
+    sub_btn = Button(win, text = 'Submit', command = lambda variety=result: submit(variety, calix_var, all_var, diameter_var, checkboxes, app), font=('calibre',20, 'bold'))
     sub_btn.grid(row=15,column=0, columnspan=3, padx = 1, pady = 20)
     
     # Create a label and image to display the measure instructions
