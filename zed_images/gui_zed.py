@@ -1,10 +1,13 @@
 from typing import Any
 import cv2
+import torch
 import pyzed.sl as sl
 from tkinter import *
 from PIL import Image, ImageTk
 import os
 import csv
+import ctypes
+#sl = ctypes.windll.LoadLibrary('C:\\Users\\fabio\\Documents\\10_PhD\\22_JETSON\\jetson\\zed_images\\sl_zed64.dll')
 
 class ZedVideoApp:
     def __init__(self, root, streaming = True):
