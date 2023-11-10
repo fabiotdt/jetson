@@ -60,12 +60,15 @@ class ZedVideoApp:
         
         ret, frame = self.cap.read()
         left_right_image = numpy.split(frame, 2, axis=1)
-        left_image = left_right_image[0]
-        right_image = left_right_image[1]
 
         if ret:
-            left_image = cv2.cvtColor(left_frame, cv2.COLOR_BGR2RGB)
-            right_image = cv2.cvtColor(right_frame, cv2.COLOR_BGR2RGB)
+            
+            #left_image = cv2.cvtColor(left_right_image[0], cv2.COLOR_BGR2RGB)
+            #right_image = cv2.cvtColor(left_right_image[1], cv2.COLOR_BGR2RGB)
+
+            left_image = left_right_image[0]
+            right_image = left_right_image[1]
+
             cv2.imwrite(os.path.join(root.left_img,name+'_L.jpg'), left_image)
             cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), right_image)
 
@@ -356,9 +359,17 @@ def save_data(input, confirm, app):
     print('diameter: ', input[2].get())
     print('variety: ', input[3])
 
-    with open(os.path.join(root.dataset, 'dataset.csv'), 'w', encoding='UTF8') as f:
+    with open(os.path.join(root.dataset, 'dataset.csv'), 'a', encoding='UTF8') as f:
         writer = csv.writer(f)
-        writer.writerow([name,timestamp,str(os.path.join(root.left_img,name+'_L.jpg')),str(os.path.join(root.right_img,name+'_R.jpg')),input[0],input[1],input[2],input[3],i])
+        writer.writerow([name,
+                        timestamp,
+                        str(os.path.join(root.left_img,name+'_L.jpg')),
+                        str(os.path.join(root.right_img,name+'_R.jpg')),
+                        input[0].get(),   
+                        input[1].get(),
+                        input[2].get(),
+                        input[3],
+                        i])
         f.close()
     
     print('Data saved!')
