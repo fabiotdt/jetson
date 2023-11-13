@@ -1,73 +1,78 @@
 from typing import Any
 import cv2
+import numpy
 import pyzed.sl as sl
 from tkinter import *
 from PIL import Image, ImageTk
 import os
 import csv
+import datetime
+
+class storing_data():
+    def __init__(self):
+        base_root = '/home/fabio_tdt/Desktop/Data_quality'
+        self.left_img = os.path.join(base_root, 'left_image')
+        self.right_img = os.path.join(base_root, 'right_image')
+        self.dataset = os.path.join(base_root, 'dataset')
 
 class ZedVideoApp:
     def __init__(self, root, streaming = True):
+        
         self.root = root
         self.streaming = streaming
 
+        self.wsh = self.root.winfo_screenheight()
+        self.wsw = self.root.winfo_screenwidth()
+
         # Create a video frame on the right
-        self.video_frame = Frame(self.root, width=int(self.root.winfo_screenwidth()/2))
-        self.video_frame.grid(row=6, column=4, rowspan= 15, columnspan=4, padx=1, pady=1)
+        self.video_frame = Frame(self.root, width=int(self.wsw/2))
+        self.video_frame.grid(row=6, column=3, rowspan= 15, columnspan=3, padx=10, pady=20)
         self.video_label = Label(self.video_frame)
         self.video_label.pack()
-        # Initialize the ZED camera
-        self.zed = sl.Camera()
-        self.init_params = sl.InitParameters()
-        self.runtime_params = sl.RuntimeParameters()
-        self.res = sl.Resolution()
-        self.res.width = self.zed.get_camera_information().camera_configuration.resolution.width
-        self.res.height = self.zed.get_camera_information().camera_configuration.resolution.height
 
-       # if self.zed.is_opened():
-            #self.zed.close()
-
-        self.init_params.camera_resolution = sl.RESOLUTION.HD720
-        self.init_params.camera_fps = 30
-
-        err = self.zed.open(self.init_params)
-
-        if err != sl.ERROR_CODE.SUCCESS:
-            print(f"ZED Camera Open error: {err}")
-            return
+        # Initilaize the ZED camera
+        self.cap = cv2.VideoCapture(2) # 2 sis the id of the camera, to get the id of the various input: ls -l /dev/video*
 
         #if self.streaming:
         self.update_video_stream()
     
     def update_video_stream(self):
-        if self.zed.grab(self.runtime_params) == sl.ERROR_CODE.SUCCESS:
-            left_image = sl.Mat()
-            self.zed.retrieve_image(left_image, sl.VIEW.LEFT)
-            frame = left_image.get_data()
-
-            frame = cv2.resize(frame, (int(self.root.winfo_screenwidth()/2), int(self.root.winfo_screenheight()/2)))
-
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            photo = ImageTk.PhotoImage(image=Image.fromarray(frame_rgb))
+        if self.cap.isOpened():
+            # Retrieving the data 
+            ret, frame = self.cap.read()
+            # Splitting the frame in two
             
-            self.video_label.config(image=photo)
-            self.video_label.image = photo
-            self.video_frame.update()
-            self.root.after(5, self.update_video_stream)
+            left_right_image = numpy.split(frame, 2, axis=1)
+            left_frame = left_right_image[0]
+
+            if ret:
+                frame = cv2.resize(left_frame, (int(self.wsw/3),  int(self.wsh/3)))
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                photo = ImageTk.PhotoImage(image=Image.fromarray(frame_rgb))
+
+                # setting up the 
+                self.video_label.config(image=photo)
+                self.video_label.image = photo
+                self.video_frame.update()
+                self.root.after(5, self.update_video_stream)
     
     def submit_action(self, root, name):
-        if self.zed.grab(self.runtime_params) == sl.ERROR_CODE.SUCCESS:
-            left_image = sl.Mat()
-            right_image = sl.Mat()
-            self.zed.retrieve_image(left_image, sl.VIEW.LEFT)
-            self.zed.retrieve_image(right_image, sl.VIEW.RIGHT)
+        
+        ret, frame = self.cap.read()
+        left_right_image = numpy.split(frame, 2, axis=1)
 
-            if left_image is not None: cv2.imwrite(os.path.join(root.left_img,name+'_L.jpg'), left_image.get_data())
-            if right_image is not None: cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), right_image.get_data())
-    
-            timestamp = self.zed.get_timestamp(sl.TIME_REFERENCE.CURRENT)
-            self.update_video_stream()
-            return timestamp
+        if ret:
+            
+            #left_image = cv2.cvtColor(left_right_image[0], cv2.COLOR_BGR2RGB)
+            #right_image = cv2.cvtColor(left_right_image[1], cv2.COLOR_BGR2RGB)
+
+            left_image = left_right_image[0]
+            right_image = left_right_image[1]
+
+            cv2.imwrite(os.path.join(root.left_img,name+'_L.jpg'), left_image)
+            cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), right_image)
+
+        self.update_video_stream()
     
 
 def description(win):
@@ -83,11 +88,11 @@ def description(win):
     """
     sc_w = win.winfo_screenwidth()
     txt = Text(win, height=10, width=int(sc_w/32), font = ('calibre', 20))
-    txt.grid(row=0, column=0, rowspan = 4, columnspan=4, padx = 1, pady = 5)
+    txt.grid(row=0, column=0, rowspan = 4, columnspan=3, padx = 1, pady = 5)
 
     txt.insert(END,"This is an interface to manage the images and the measures of the flowers.\n\n")
     txt.insert(END,"The program is divided in 5 parts:\n")
-    txt.insert(END,"0) flower pixking (of course). \n")
+    txt.insert(END,"0) flower picking (of course). \n")
     txt.insert(END,"1) select the flower's variety, this will be done by a chelist.\n")
     txt.insert(END,"2) measure the flower, this will be done by the operator thanks to a caliber.\n")
     txt.insert(END,"3) image acquisition, this will be done by the ZED camera.\n")
@@ -110,7 +115,7 @@ def sample_measure(win):
         img = PhotoImage( file="info_measurments.png")
         image_label = Label(win, image=img)
         image_label.image = img
-        image_label.grid(row=1, column=4, rowspan = 4, columnspan=3, padx = 150, pady = 20)
+        image_label.grid(row=1, column=3, rowspan = 4, columnspan=3, padx = 100, pady = 20)
     
 def checklist_var(win):
 
@@ -275,13 +280,6 @@ def worning_window(warning_text):
 
     worning.mainloop()
 
-class storing_data():
-    def __init__(self):
-        base_root = '/media/jetson/TDTF_sd/Data_measurments'
-        self.left_img = os.path.join(base_root, 'left_image')
-        self.right_img = os.path.join(base_root, 'right_image')
-        self.dataset = os.path.join(base_root, 'dataset')
-
 def submit(variety, calix_var, all_var, diameter_var, checkboxes, app):
 
     """
@@ -303,9 +301,10 @@ def submit(variety, calix_var, all_var, diameter_var, checkboxes, app):
     diameter = diameter_var.get()
 
     # Check if all the measurment data have been inserted
-    if calix == 0.0 or overall == 0.0 or diameter == 0.0: 
+    if calix == 0.0 or overall == 0.0 or diameter == 0.0: # or calix == "" or overall == "" or diameter == "": 
         worning_window("Please fill ALL measurment fields")
         return
+    
     # Check if the flower variety has been selected
     if variety == []:
         worning_window("Please select a flower variety")
@@ -347,8 +346,10 @@ def save_data(input, confirm, app):
             i = int(previous) + 1
     
     name = input[3][0] + '_' + str(i)
-
-    timestamp = app.submit_action(root, name)
+    
+    ct = datetime.datetime.now()
+    timestamp = ct.timestamp()
+    app.submit_action(root, name)
     # Save the data
 
     print("Saving data...")
@@ -358,9 +359,17 @@ def save_data(input, confirm, app):
     print('diameter: ', input[2].get())
     print('variety: ', input[3])
 
-    with open(os.path.join(root.dataset, 'dataset.csv'), 'w', encoding='UTF8') as f:
+    with open(os.path.join(root.dataset, 'dataset.csv'), 'a', encoding='UTF8') as f:
         writer = csv.writer(f)
-        writer.writerow([name,timestamp,str(os.path.join(root.left_img,name+'_L.jpg')),str(os.path.join(root.right_img,name+'_R.jpg')),input[0],input[1],input[2],input[3],i])
+        writer.writerow([name,
+                        timestamp,
+                        str(os.path.join(root.left_img,name+'_L.jpg')),
+                        str(os.path.join(root.right_img,name+'_R.jpg')),
+                        input[0].get(),   
+                        input[1].get(),
+                        input[2].get(),
+                        input[3],
+                        i])
         f.close()
     
     print('Data saved!')
@@ -381,8 +390,11 @@ def main():
     # Define the geometry of the window
     screen_width = win.winfo_screenwidth()
     screen_height = win.winfo_screenheight()
-    win.geometry(f"{screen_width}x{screen_height}")  
+    win.geometry(f"{screen_width}x{screen_height}")
 
+    win['padx'] = 20
+    win['pady'] = 20
+    
     # Create the variables of the measures
     calix_var = DoubleVar()
     all_var = DoubleVar()
@@ -413,14 +425,14 @@ def main():
     
     # Create a label and image to display the measure instructions
     samp_measure = Label(win, text="Sample of measurment to take", font=('calibre',20, 'bold'))
-    samp_measure.grid(row=0, column=4, columnspan=3, padx = 1, pady = 1)
+    samp_measure.grid(row=0, column=3, columnspan=3, padx = 1, pady = 1)
 
     # Insert the sample image of the measure to take
     sample_measure(win)
     
     # Create the label and canvas to display the image from the ZED camera
     zed_image = Label(win, text="ZED camera LEFT image", font=('calibre',20, 'bold'))
-    zed_image.grid(row=5, column=4, columnspan=3, padx = 1, pady = 10)
+    zed_image.grid(row=5, column=3, columnspan=3, padx = 1, pady = 10)
 
     win.mainloop()
 
