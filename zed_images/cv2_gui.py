@@ -31,15 +31,17 @@ class ZedVideoApp:
         self.video_label.pack()
 
         # Initilaize the ZED camera
-        self.cap = cv2.VideoCapture(2) # 2 sis the id of the camera, to get the id of the various input: ls -l /dev/video*
+        self.zedCamera = cv2.VideoCapture(2) # 2 sis the id of the camera, to get the id of the various input: ls -l /dev/video*
+        self.zedCamera.set(3, 256)
+        self.zedCamera.set(4, 72)
 
         #if self.streaming:
         self.update_video_stream()
     
     def update_video_stream(self):
-        if self.cap.isOpened():
+        if self.zedCamera.isOpened():
             # Retrieving the data 
-            ret, frame = self.cap.read()
+            ret, frame = self.zedCamera.read()
             # Splitting the frame in two
             
             left_right_image = numpy.split(frame, 2, axis=1)
@@ -58,7 +60,7 @@ class ZedVideoApp:
     
     def submit_action(self, root, name):
         
-        ret, frame = self.cap.read()
+        ret, frame = self.zedCamera.read()
         left_right_image = numpy.split(frame, 2, axis=1)
 
         if ret:

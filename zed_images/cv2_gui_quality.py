@@ -32,6 +32,8 @@ class ZedVideoApp:
 
         # Initilaize the ZED camera
         self.cap = cv2.VideoCapture(2) # 2 sis the id of the camera, to get the id of the various input: ls -l /dev/video*
+        self.cap.set(3, 2560)
+        self.cap.set(4, 720)
 
         #if self.streaming:
         self.update_video_stream()
@@ -73,32 +75,6 @@ class ZedVideoApp:
             cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), right_image)
 
         self.update_video_stream()
-    
-
-def description(win):
-    
-    """
-    Create a text description of the interface.
-
-    Args:
-        win (Tk): The main window
-
-    Returns:
-        None
-    """
-    sc_w = win.winfo_screenwidth()
-    txt = Text(win, height=10, width=int(sc_w/32), font = ('calibre', 20))
-    txt.grid(row=0, column=0, rowspan = 4, columnspan=3, padx = 1, pady = 5)
-
-    txt.insert(END,"This is an interface to manage the images and the measures of the flowers.\n\n")
-    txt.insert(END,"The program is divided in 5 parts:\n")
-    txt.insert(END,"0) flower picking (of course). \n")
-    txt.insert(END,"1) select the flower's variety, this will be done by a chelist.\n")
-    txt.insert(END,"2) measure the flower, this will be done by the operator thanks to a caliber.\n")
-    txt.insert(END,"3) image acquisition, this will be done by the ZED camera.\n")
-    txt.insert(END,"4) image and information saving, this will be done by the program.\n")
-
-    txt.configure(state='disabled')
 
 def sample_measure(win):
     
@@ -115,12 +91,73 @@ def sample_measure(win):
         img = PhotoImage( file="info_measurments.png")
         image_label = Label(win, image=img)
         image_label.image = img
+        image_label.grid(row=1, column=3, rowspan = 4, columnspan=3, padx = 100, pady = 20)    
+
+def description(win):
+    
+    """
+    Create a text description of the interface.
+
+    Args:
+        win (Tk): The main window
+
+    Returns:
+        None
+    """
+    sc_w = win.winfo_screenwidth()
+    txt = Text(win, height=10, width=int(sc_w/32), font = ('calibre', 20))
+    txt.grid(row=0, column=0, rowspan = 4, columnspan=3, padx = 1, pady = 5)
+
+    txt.insert(END,"This is an interface to manage the images and annotation for the quality controll module.\n\n")
+    txt.insert(END,"The program is divided in 5 parts:\n")
+    txt.insert(END,"0) flower picking (of course). \n")
+    txt.insert(END,"1) select the flower's variety, this will be done by a chelist.\n")
+    txt.insert(END,"2) assess whether the flower is good or bad\n")
+
+    txt.configure(state='disabled')
+
+def sample_quality(win):
+    
+        """
+        Create a sample image of the measure to take.
+    
+        Args:
+            win (Tk): The main window
+    
+        Returns:
+            None
+        """
+
+        quality = {
+            1 : 'good',
+            0 : 'bad'
+        }
+    
+        img = PhotoImage( file="info_measurments.png")
+        image_label = Label(win, image=img)
+        image_label.image = img
         image_label.grid(row=1, column=3, rowspan = 4, columnspan=3, padx = 100, pady = 20)
+
+        checkboxes = []
+        selected_options = []  # List to store selected options
+
+        def update_selected(option_key, var):
+            if var.get() == 1:
+                selected_options.append(option_key)
+            else:
+                selected_options.remove(option_key)
+
+        for idx, key in enumerate(quality.keys()):
+            var = IntVar()
+            var_button = Checkbutton(win, text= quality[key], bd=4, variable=var, font=('calibre',20), command = lambda key=key, var=var: update_selected(key, var))
+            var_button.grid(row=idx+6, column=0, columnspan=3, padx = 1, pady = 1)
+            checkboxes.append(var)
+
+        return checkboxes, selected_options
     
 def checklist_var(win):
 
     """
-    Create a checklist to select the flower variety
 
     Args:
         win (Tk): The main window
@@ -163,36 +200,6 @@ def checklist_var(win):
         checkboxes.append(var)
     
     return checkboxes, selected_options
-
-def measure_var(win, calix_var, all_var, diameter_var):
-
-    """
-    Create the entry to insert the measure of the calix, the overall height and the diameter.
-
-    Args:
-        win (Tk): The main window
-        calix_var (DoubleVar): The variable to store the calix measure
-        all_var (DoubleVar): The variable to store the overall height measure
-        diameter_var (DoubleVar): The variable to store the diameter measure
-
-    Returns:
-        None
-    """
-    # Create the entry to insert the measure of the calix
-    calix_label = Label(win, text = 'Calix measure', font=('calibre',20, 'bold'))
-    calix_label.grid(row=11,column=0, padx = 10, pady = 10)
-    measure_calix = Entry(win, textvariable = calix_var, width=30, font=('calibre',20))
-    measure_calix.grid(row=11,column=1, padx = 10, pady = 10)
-    # Create the entry to insert the measure of the overall height
-    all_label = Label(win, text = 'Overall height', font=('calibre',20, 'bold'))
-    all_label.grid(row=12,column=0, padx = 10, pady = 10)
-    measure_all = Entry(win, textvariable = all_var, width=30, font=('calibre',20))
-    measure_all.grid(row=12,column=1, padx = 10, pady = 10)
-    # Create the entry to insert the measure of the diameter
-    diameter_label = Label(win, text = 'Diameter measure', font=('calibre',20, 'bold'))
-    diameter_label.grid(row=13,column=0, padx = 10, pady = 10)
-    measure_diameter = Entry(win, textvariable = diameter_var, width=30, font=('calibre',20))
-    measure_diameter.grid(row=13,column=1, padx = 10, pady = 10)
 
 
 def confirm_window(input, app):
@@ -280,7 +287,7 @@ def worning_window(warning_text):
 
     worning.mainloop()
 
-def submit(variety, calix_var, all_var, diameter_var, checkboxes, app):
+def submit(variety, quality, check_quality, checkboxes, app):
 
     """
     This function will check if all the data are correct and will call the confirm_window function.
@@ -296,28 +303,28 @@ def submit(variety, calix_var, all_var, diameter_var, checkboxes, app):
         None
     """
 
-    calix = calix_var.get()
-    overall = all_var.get()
-    diameter = diameter_var.get()
-
-    # Check if all the measurment data have been inserted
-    if calix == 0.0 or overall == 0.0 or diameter == 0.0: # or calix == "" or overall == "" or diameter == "": 
-        worning_window("Please fill ALL measurment fields")
-        return
-    
     # Check if the flower variety has been selected
     if variety == []:
         worning_window("Please select a flower variety")
         return
-    
-    print('Checking variety ', variety)
+
+    # Check if the flower quality has been selected    
+    if quality == []:
+        worning_window("Please select a flower quality")
+        return
+
     # Check if only one flower variety has been selected
     if len(variety) > 1:
         worning_window("Please select ONLY ONE flower variety")
         return
+
+    # Check if only one flower quality has been selected
+    if len(quality) > 1:
+        worning_window("Please select ONLY ONE flower quality")
+        return
     
     #confirm_window(calix, overall, diameter, variety)
-    input = [calix_var, all_var, diameter_var, variety, checkboxes]
+    input = [variety, quality, check_quality, checkboxes, app]
     confirm_window(input, app) 
 
 def save_data(input, confirm, app):
@@ -332,7 +339,7 @@ def save_data(input, confirm, app):
     if 'dataset.csv' not in os.listdir(root.dataset):
         with open(os.path.join(root.dataset, 'dataset.csv'), 'w', encoding='UTF8') as f:
             writer = csv.writer(f)
-            writer.writerow(["filename","timestamp", "left_image", "right_image", "calix_height", "oveall_height", "diameter", "variety", "index"])
+            writer.writerow(["filename","timestamp", "left_image", "right_image", "quality", "variety", "index"])
         f.close()
     
     with open(os.path.join(root.dataset, 'dataset.csv'), 'r', encoding='UTF8') as f:
@@ -354,10 +361,8 @@ def save_data(input, confirm, app):
 
     print("Saving data...")
     print('name: ', name)  
-    print('calix: ', input[0].get())
-    print('overall: ', input[1].get())
-    print('diameter: ', input[2].get())
-    print('variety: ', input[3])
+    print('variety: ', input[0])
+    print('quality: ', input[1])
 
     with open(os.path.join(root.dataset, 'dataset.csv'), 'a', encoding='UTF8') as f:
         writer = csv.writer(f)
@@ -365,21 +370,18 @@ def save_data(input, confirm, app):
                         timestamp,
                         str(os.path.join(root.left_img,name+'_L.jpg')),
                         str(os.path.join(root.right_img,name+'_R.jpg')),
-                        input[0].get(),   
-                        input[1].get(),
-                        input[2].get(),
-                        input[3],
+                        input[0],   
+                        input[1],
                         i])
         f.close()
     
     print('Data saved!')
-    # Setting all the value back to the original one
-    for var in input[4]:
+    # Setting all the variety back to the original one
+    for var in input[2]:
         var.set(0)
-    input[0].set(0.0)
-    input[1].set(0.0)
-    input[2].set(0.0)
-    input[3].clear()
+    # Setting all the quality back to the original one
+    for var in input[3]:
+        var.set(0)
 
 def main():
     
@@ -408,23 +410,23 @@ def main():
     inst_name.grid(row=5, column=0, columnspan=3, padx = 1, pady = 1)
 
     # Create a ckelist to select the flower variety
-    checkboxes, result =  checklist_var(win)
+    checkboxes, result =  checklist_var(win)  
     
     # Create a label to display the measure instructions
-    inst_measure = Label(win, text="Insert the collected measurments", font=('calibre',20, 'bold'))
+    inst_measure = Label(win, text="Insert the flower quality", font=('calibre',20, 'bold'))
     inst_measure.grid(row=9, column=0, columnspan=3, padx = 1, pady = 1)
 
-    # Create the variables of the measures
-    measure_var(win, calix_var, all_var, diameter_var)
+    # Create the variables of the quality
+    chec_quality, quality = sample_quality(win)
     
     app = ZedVideoApp(win, streaming=True)
 
     # Create the button to submit everything
-    sub_btn = Button(win, text = 'Submit', command = lambda variety=result: submit(variety, calix_var, all_var, diameter_var, checkboxes, app), font=('calibre',20, 'bold'))
+    sub_btn = Button(win, text = 'Submit', command = lambda variety=result: submit(variety, quality, check_quality, checkboxes, app), font=('calibre',20, 'bold'))
     sub_btn.grid(row=15,column=0, columnspan=3, padx = 1, pady = 20)
     
     # Create a label and image to display the measure instructions
-    samp_measure = Label(win, text="Sample of measurment to take", font=('calibre',20, 'bold'))
+    samp_measure = Label(win, text="Sample of measurment picture to  take", font=('calibre',20, 'bold'))
     samp_measure.grid(row=0, column=3, columnspan=3, padx = 1, pady = 1)
 
     # Insert the sample image of the measure to take
