@@ -10,7 +10,8 @@ import datetime
 
 class storing_data():
     def __init__(self):
-        base_root = '/home/fabio_tdt/Desktop/Data_quality'
+        base_root = '/home/fabio_tdt/Desktop/Data_quality' # Linux
+        #base_root = 'C:\\Users\\fabio\\Desktop\\Data_quality' # Windows
         self.left_img = os.path.join(base_root, 'left_image')
         self.right_img = os.path.join(base_root, 'right_image')
         self.dataset = os.path.join(base_root, 'dataset')
@@ -75,8 +76,65 @@ class ZedVideoApp:
             cv2.imwrite(os.path.join(root.right_img,name+'_R.jpg'), right_image)
 
         self.update_video_stream()
+class FileCounterApp:
+    def __init__(self, root):
+        
+        self.root = root
+        
+        self.root.title("File Counter App")
+        self.folder_path = storing_data() 
+        
+        self.taget_count_var = StringVar()
+        self.bocl_count_var = StringVar()
+        self.viga_count_var = StringVar()        
+        
+        self.create_widgets()
 
-def sample_measure(win):
+    def create_widgets(self):
+        # Create three labels to display file counts
+        taget = Label(self.root, text="Tagete:", font = ('calibre', 10))
+        taget.grid(row=20, column=0, padx=1, pady=5)#, sticky="e")
+        
+        viga = Label(self.root, text="Viole:",font = ('calibre', 10))
+        viga.grid(row=20, column=1, padx=1, pady=5)#, sticky="e")
+        
+        bocl = Label(self.root, text="Bocca di Leone:",font = ('calibre', 10))
+        bocl.grid(row=20, column=2, padx=1, pady=5)#, sticky="e")
+
+        # Create three entry widgets to display file counts
+        bocl_en = Entry(self.root, textvariable=self.taget_count_var, state="readonly",font = ('calibre', 10))
+        bocl_en.grid(row=21, column=0, padx=1, pady=5)#, sticky="w")
+        
+        taget_en = Entry(self.root, textvariable=self.viga_count_var, state="readonly",font = ('calibre', 10))
+        taget_en.grid(row=21, column=1, padx=1, pady=5)#, sticky="w")
+        
+        bocl_en = Entry(self.root, textvariable=self.bocl_count_var, state="readonly",font = ('calibre', 10))
+        bocl_en.grid(row=21, column=2, padx=1, pady=5)#, sticky="w")
+
+        # Update file counts initially
+        self.update_file_counts()
+    
+    def update_file_counts(self):    
+
+        if 'dataset.csv' in os.listdir(self.folder_path.dataset):
+            df = pd.read_csv(os.path.join(self.folder_path.dataset, 'dataset.csv'))#['variety']
+            variety = df['variety']
+            count_taget = variety[variety == 'taget'].count()
+            count_bocl = variety[variety == 'bocl'].count()
+            count_viga = variety[variety == 'viga'].count()
+        else:
+            count_taget = 0
+            count_bocl = 0
+            count_viga = 0
+
+        # Update the text variables for the entry widgets       
+        self.taget_count_var.set(f"{count_taget}")
+        self.bocl_count_var.set(f"{count_bocl}")
+        self.viga_count_var.set(f"{count_viga}")
+
+        self.root.after(5000, self.update_file_counts)
+
+def sample_image(win):
     
         """
         Create a sample image of the measure to take.
@@ -88,7 +146,7 @@ def sample_measure(win):
             None
         """
     
-        img = PhotoImage( file="info_measurments.png")
+        img = PhotoImage( file="quality.png")
         image_label = Label(win, image=img)
         image_label.image = img
         image_label.grid(row=1, column=3, rowspan = 4, columnspan=3, padx = 100, pady = 20)    
@@ -105,7 +163,7 @@ def description(win):
         None
     """
     sc_w = win.winfo_screenwidth()
-    txt = Text(win, height=10, width=int(sc_w/32), font = ('calibre', 20))
+    txt = Text(win, height=8, width=int(sc_w/32), font = ('calibre', 20))
     txt.grid(row=0, column=0, rowspan = 4, columnspan=3, padx = 1, pady = 5)
 
     txt.insert(END,"This is an interface to manage the images and annotation for the quality controll module.\n\n")
@@ -133,11 +191,6 @@ def sample_quality(win):
             0 : 'bad'
         }
     
-        img = PhotoImage( file="info_measurments.png")
-        image_label = Label(win, image=img)
-        image_label.image = img
-        image_label.grid(row=1, column=3, rowspan = 4, columnspan=3, padx = 100, pady = 20)
-
         checkboxes = []
         selected_options = []  # List to store selected options
 
@@ -150,7 +203,7 @@ def sample_quality(win):
         for idx, key in enumerate(quality.keys()):
             var = IntVar()
             var_button = Checkbutton(win, text= quality[key], bd=4, variable=var, font=('calibre',20), command = lambda key=key, var=var: update_selected(key, var))
-            var_button.grid(row=idx+6, column=0, columnspan=3, padx = 1, pady = 1)
+            var_button.grid(row=idx+9, column=0, columnspan=3, padx = 1, pady = 1)
             checkboxes.append(var)
 
         return checkboxes, selected_options
@@ -337,12 +390,12 @@ def save_data(input, confirm, app):
     root = storing_data()
        
     if 'dataset.csv' not in os.listdir(root.dataset):
-        with open(os.path.join(root.dataset, 'dataset.csv'), 'w', encoding='UTF8') as f:
+        with open(os.path.join(root.dataset, 'dataset.csv'), 'w', nrewline = '') as f:
             writer = csv.writer(f)
             writer.writerow(["filename","timestamp", "left_image", "right_image", "quality", "variety", "index"])
         f.close()
     
-    with open(os.path.join(root.dataset, 'dataset.csv'), 'r', encoding='UTF8') as f:
+    with open(os.path.join(root.dataset, 'dataset.csv'), 'r', ) as f:
         final_line = f.readlines()[-1]
         previous = final_line.split(',')[-1]
         f.close()
@@ -364,7 +417,7 @@ def save_data(input, confirm, app):
     print('variety: ', input[0])
     print('quality: ', input[1])
 
-    with open(os.path.join(root.dataset, 'dataset.csv'), 'a', encoding='UTF8') as f:
+    with open(os.path.join(root.dataset, 'dataset.csv'), 'a', newline = '') as f:
         writer = csv.writer(f)
         writer.writerow([name,
                         timestamp,
@@ -420,17 +473,21 @@ def main():
     chec_quality, quality = sample_quality(win)
     
     app = ZedVideoApp(win, streaming=True)
+    FileCounterApp(win) 
 
     # Create the button to submit everything
     sub_btn = Button(win, text = 'Submit', command = lambda variety=result: submit(variety, quality, check_quality, checkboxes, app), font=('calibre',20, 'bold'))
     sub_btn.grid(row=15,column=0, columnspan=3, padx = 1, pady = 20)
+
+    resume = Label(win, text = 'Images collected up to now', font=('calibre',20, 'bold'))
+    resume.grid(row=17,column=0, columnspan=3, padx = 1, pady = 20)
     
     # Create a label and image to display the measure instructions
     samp_measure = Label(win, text="Sample of measurment picture to  take", font=('calibre',20, 'bold'))
     samp_measure.grid(row=0, column=3, columnspan=3, padx = 1, pady = 1)
 
     # Insert the sample image of the measure to take
-    sample_measure(win)
+    sample_image(win)
     
     # Create the label and canvas to display the image from the ZED camera
     zed_image = Label(win, text="ZED camera LEFT image", font=('calibre',20, 'bold'))

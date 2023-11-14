@@ -10,7 +10,8 @@ import datetime
 
 class storing_data():
     def __init__(self):
-        base_root = '/home/fabio_tdt/Desktop/Data_measurments'
+        base_root = '/home/fabio_tdt/Desktop/Data_measurments' # Linux
+        #base_root =  'C:\\Users\\fabio\\Desktop\\Data_measurments' # Windows
         self.left_img = os.path.join(base_root, 'left_image')
         self.right_img = os.path.join(base_root, 'right_image')
         self.dataset = os.path.join(base_root, 'dataset')
@@ -76,6 +77,64 @@ class ZedVideoApp:
 
         self.update_video_stream()
     
+
+class FileCounterApp:
+    def __init__(self, root):
+        
+        self.root = root
+        
+        self.root.title("File Counter App")
+        self.folder_path = storing_data() 
+        
+        self.taget_count_var = StringVar()
+        self.bocl_count_var = StringVar()
+        self.viga_count_var = StringVar()        
+        
+        self.create_widgets()
+
+    def create_widgets(self):
+        # Create three labels to display file counts
+        taget = Label(self.root, text="Tagete:", font = ('calibre', 10))
+        taget.grid(row=20, column=0, padx=1, pady=5)#, sticky="e")
+        
+        viga = Label(self.root, text="Viole:",font = ('calibre', 10))
+        viga.grid(row=20, column=1, padx=1, pady=5)#, sticky="e")
+        
+        bocl = Label(self.root, text="Bocca di Leone:",font = ('calibre', 10))
+        bocl.grid(row=20, column=2, padx=1, pady=5)#, sticky="e")
+
+        # Create three entry widgets to display file counts
+        bocl_en = Entry(self.root, textvariable=self.taget_count_var, state="readonly",font = ('calibre', 10))
+        bocl_en.grid(row=21, column=0, padx=1, pady=5)#, sticky="w")
+        
+        taget_en = Entry(self.root, textvariable=self.viga_count_var, state="readonly",font = ('calibre', 10))
+        taget_en.grid(row=21, column=1, padx=1, pady=5)#, sticky="w")
+        
+        bocl_en = Entry(self.root, textvariable=self.bocl_count_var, state="readonly",font = ('calibre', 10))
+        bocl_en.grid(row=21, column=2, padx=1, pady=5)#, sticky="w")
+
+        # Update file counts initially
+        self.update_file_counts()
+
+    def update_file_counts(self):    
+
+        if 'dataset.csv' in os.listdir(self.folder_path.dataset):
+            df = pd.read_csv(os.path.join(self.folder_path.dataset, 'dataset.csv'))#['variety']
+            variety = df['variety']
+            count_taget = variety[variety == 'taget'].count()
+            count_bocl = variety[variety == 'bocl'].count()
+            count_viga = variety[variety == 'viga'].count()
+        else:
+            count_taget = 0
+            count_bocl = 0
+            count_viga = 0
+
+        # Update the text variables for the entry widgets       
+        self.taget_count_var.set(f"{count_taget}")
+        self.bocl_count_var.set(f"{count_bocl}")
+        self.viga_count_var.set(f"{count_viga}")
+
+        self.root.after(5000, self.update_file_counts)
 
 def description(win):
     
@@ -420,6 +479,7 @@ def main():
     measure_var(win, calix_var, all_var, diameter_var)
     
     app = ZedVideoApp(win, streaming=True)
+    FileCounterApp(win)  
 
     # Create the button to submit everything
     sub_btn = Button(win, text = 'Submit', command = lambda variety=result: submit(variety, calix_var, all_var, diameter_var, checkboxes, app), font=('calibre',20, 'bold'))
