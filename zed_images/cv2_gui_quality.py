@@ -7,10 +7,12 @@ from PIL import Image, ImageTk
 import os
 import csv
 import datetime
+import pandas as pd
 
 class storing_data():
     def __init__(self):
-        base_root = '/home/fabio_tdt/Desktop/Data_quality' # Linux
+        #base_root = '/home/fabio_tdt/Desktop/Data_quality' # Linux
+        base_root = '/media/jetson/TDTF_sd/Data_quality' # Jetson
         #base_root = 'C:\\Users\\fabio\\Desktop\\Data_quality' # Windows
         self.left_img = os.path.join(base_root, 'left_image')
         self.right_img = os.path.join(base_root, 'right_image')
@@ -32,7 +34,7 @@ class ZedVideoApp:
         self.video_label.pack()
 
         # Initilaize the ZED camera
-        self.cap = cv2.VideoCapture(2) # 2 sis the id of the camera, to get the id of the various input: ls -l /dev/video*
+        self.cap = cv2.VideoCapture(0) # 2 sis the id of the camera, to get the id of the various input: ls -l /dev/video*
         self.cap.set(3, 2560)
         self.cap.set(4, 720)
 
@@ -470,7 +472,7 @@ def main():
     inst_measure.grid(row=9, column=0, columnspan=3, padx = 1, pady = 1)
 
     # Create the variables of the quality
-    chec_quality, quality = sample_quality(win)
+    check_quality, quality = sample_quality(win)
     
     app = ZedVideoApp(win, streaming=True)
     FileCounterApp(win) 

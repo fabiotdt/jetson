@@ -1,7 +1,8 @@
 import pandas as pd
 
 # Load the csv file using pandas' read_csv() function
-df = pd.read_csv('/home/fabio_tdt/Desktop/Data_measurments/dataset/dataset.csv') # Linux
+#df = pd.read_csv('/home/fabio_tdt/Desktop/Data_measurments/dataset/dataset.csv') # Linux
+df = pd.read_csv('/media/jetson/TDTF_sd/Data_measurments/dataset/dataset.csv') # Jetson
 #df = pd.read_csv('C:\\Users\\fabio\\Desktop\\Data_measurments\\dataset\\dataset.csv') # Windows
 # Data quality
 #df = pd.read_csv('C:\\Users\\fabio\\Desktop\\Data_quality\\dataset\\dataset.csv') # Windows

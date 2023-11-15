@@ -7,6 +7,7 @@ from PIL import Image, ImageTk
 import os
 import csv
 import datetime
+import pandas as pd
 
 class storing_data():
     def __init__(self):
@@ -25,19 +26,23 @@ class ZedVideoApp:
         self.wsh = self.root.winfo_screenheight()
         self.wsw = self.root.winfo_screenwidth()
 
-        # Create a ZED camera object
+        # Create a ZED camera object        
         self.zedCamera = sl.Camera()
+        # Creating initial parameters
         init_params = sl.InitParameters()
         init_params.camera_resolution = sl.RESOLUTION.HD720 # Image Resolution (HD2K, HD1080, HD720, SVGA, VGA)
         init_params.camera_fps = 30
+        
+        status = self.zedCamera.open(init_params)
+        if status != sl.ERROR_CODE.SUCCESS:
+            print(f"Error (status): Unable to Opne Zed camera")
+            self.root.destroy()
+            return
 
-        #self.res = sl.Resolution()
-        #self.res.width = self.zedCamera.get_camera_information().camera_configuration.resolution.width
-        #self.res.height = self.zedCamera.get_camera_information().camera_configuration.resolution.height
-            
-        #self.image_l = sl.Mat()
-        #self.image_r = sl.Mat()
-
+        self.res = sl.Resolution()
+        self.res.width = self.zedCamera.get_camera_information().camera_configuration.resolution.width
+        self.res.height = self.zedCamera.get_camera_information().camera_configuration.resolution.height
+        
         # Create a video frame on the right
         self.video_frame = Frame(self.root, width=int(self.wsw/2))
         self.video_frame.grid(row=6, column=3, rowspan= 15, columnspan=3, padx=10, pady=20)
@@ -48,21 +53,26 @@ class ZedVideoApp:
         
     def update_video_stream(self):
 
-        #self.zedCamera.grab(sl.RuntimeParameters())
+        self.zedCamera.grab()
         image_l = sl.Mat()
         self.zedCamera.retrieve_image(image_l, sl.VIEW.LEFT)
-        
-        #image_l_display = image_l.get_data()
-        
-        image_l = cv2.cvtColor(image_l, cv2.COLOR_BGR2RGB)
-        image_l = cv2.resize(image_l, (int(self.wsw/2), int(self.wsh/2)))
-        
-        image_l = Image.fromarray(image_l)
-        image_l = ImageTk.PhotoImage(image_l)
-    
-        self.video_label.configure(image=image_l)
+
+        prop = self.res.width/self.res.height
+
+        new_w = int(self.wsw/4.5)
+        new_h = int(new_w*prop)
+
+        image_l_display = image_l.get_data()
+        image_l_display = cv2.resize(image_l_display, (new_h, new_w))
+        image_l_display = cv2.cvtColor(image_l_display, cv2.COLOR_BGR2RGB)
+
+        photo = ImageTk.PhotoImage(image=Image.fromarray(image_l_display))
+        self.video_label.config(image=photo)
+        self.video_label.image = photo
+        self.video_frame.update()
+
         self.root.after(5, self.update_video_stream)
-    
+
     def submit_action(self, root, name):
         
         image_l = sl.Mat()
@@ -133,7 +143,7 @@ class FileCounterApp:
         self.bocl_count_var.set(f"{count_bocl}")
         self.viga_count_var.set(f"{count_viga}")
 
-        self.root.after(5000, self.update_file_counts)
+        self.root.after(1000, self.update_file_counts)
 
 def description(win):
     
@@ -428,7 +438,7 @@ def save_data(input, confirm, app):
                         input[0].get(),   
                         input[1].get(),
                         input[2].get(),
-                        input[3],
+                        input[3][0],
                         i])
         f.close()
     
